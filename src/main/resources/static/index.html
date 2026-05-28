@@ -5,224 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TechMister — Sistema de Desempenho Esportivo</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  --green: #00E676;
-  --green-dark: #00C853;
-  --green-dim: rgba(0,230,118,0.12);
-  --bg: #0A0F0D;
-  --bg2: #111A14;
-  --bg3: #172019;
-  --surface: #1C2B20;
-  --surface2: #243328;
-  --border: rgba(0,230,118,0.18);
-  --border2: rgba(255,255,255,0.07);
-  --text: #E8F5E9;
-  --text2: #9DB89F;
-  --text3: #5A7A5C;
-  --red: #FF5252;
-  --yellow: #FFD740;
-  --blue: #40C4FF;
-  --radius: 12px;
-  --radius-sm: 8px;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
-
-/* ─── TELA DE LOGIN ─── */
-#login-screen {
-  height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: radial-gradient(ellipse at 30% 50%, rgba(0,230,118,0.08) 0%, transparent 60%),
-              radial-gradient(ellipse at 80% 20%, rgba(0,200,83,0.05) 0%, transparent 50%), var(--bg);
-}
-.login-card {
-  width: 420px; background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 20px; padding: 48px; box-shadow: 0 40px 80px rgba(0,0,0,0.6);
-}
-.login-logo { text-align: center; margin-bottom: 40px; }
-.login-logo .brand { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 4px;
-  background: linear-gradient(135deg, var(--green), #69F0AE); -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent; line-height: 1; }
-.login-logo .tagline { font-size: 11px; color: var(--text3); letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; }
-.login-field { margin-bottom: 18px; }
-.login-field label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
-  text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
-.login-field input { width: 100%; background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: var(--radius-sm); padding: 14px 16px; color: var(--text); font-size: 15px;
-  font-family: 'DM Sans', sans-serif; transition: all .2s; outline: none; }
-.login-field input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
-.btn-login { width: 100%; background: var(--green); color: #000; font-size: 14px; font-weight: 700;
-  letter-spacing: 1px; text-transform: uppercase; border: none; border-radius: var(--radius-sm);
-  padding: 16px; cursor: pointer; margin-top: 8px; transition: all .2s; font-family: 'DM Sans', sans-serif; }
-.btn-login:hover { background: var(--green-dark); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,230,118,0.3); }
-.login-error { color: var(--red); font-size: 13px; text-align: center; margin-top: 12px; display: none; }
-
-/* ─── APP LAYOUT ─── */
-#app { display: none; height: 100vh; flex-direction: row; }
-
-/* SIDEBAR */
-.sidebar {
-  width: 240px; background: var(--bg2); border-right: 1px solid var(--border2);
-  display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
-}
-.sidebar-brand { padding: 24px 20px; border-bottom: 1px solid var(--border2); }
-.sidebar-brand .brand { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px;
-  background: linear-gradient(135deg, var(--green), #69F0AE); -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent; }
-.sidebar-brand .user-info { font-size: 11px; color: var(--text3); margin-top: 4px; letter-spacing: 0.5px; }
-.sidebar-brand .user-badge { display: inline-block; background: var(--green-dim); color: var(--green);
-  font-size: 10px; font-weight: 600; letter-spacing: 1px; padding: 2px 8px; border-radius: 20px;
-  margin-top: 4px; text-transform: uppercase; border: 1px solid rgba(0,230,118,0.3); }
-
-.sidebar-section { padding: 16px 12px 8px; }
-.sidebar-section-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-  color: var(--text3); padding: 0 8px; margin-bottom: 4px; }
-.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm);
-  cursor: pointer; transition: all .15s; color: var(--text2); font-size: 13.5px; font-weight: 500; }
-.nav-item:hover { background: var(--surface); color: var(--text); }
-.nav-item.active { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
-.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
-.nav-logout { margin: auto 12px 16px; padding: 10px 12px; border-radius: var(--radius-sm);
-  cursor: pointer; color: var(--red); font-size: 13.5px; font-weight: 500; display: flex;
-  align-items: center; gap: 10px; transition: all .15s; border: 1px solid rgba(255,82,82,0.15); }
-.nav-logout:hover { background: rgba(255,82,82,0.1); }
-
-/* MAIN */
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.topbar { padding: 20px 28px; border-bottom: 1px solid var(--border2); display: flex;
-  align-items: center; justify-content: space-between; background: var(--bg2); flex-shrink: 0; }
-.topbar-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 2px; color: var(--text); }
-.topbar-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
-.content { flex: 1; overflow-y: auto; padding: 24px 28px; }
-
-/* VIEWS */
-.view { display: none; }
-.view.active { display: block; }
-
-/* ─── DASHBOARD ─── */
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
-.stat-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius);
-  padding: 20px; position: relative; overflow: hidden; }
-.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
-.stat-card.green::before { background: var(--green); }
-.stat-card.blue::before { background: var(--blue); }
-.stat-card.yellow::before { background: var(--yellow); }
-.stat-card.red::before { background: var(--red); }
-.stat-icon { font-size: 28px; margin-bottom: 10px; }
-.stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 40px; line-height: 1; color: var(--text); }
-.stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
-
-/* ─── CARDS / TABELAS ─── */
-.card { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
-.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.card-title { font-size: 15px; font-weight: 600; color: var(--text); }
-.card-subtitle { font-size: 12px; color: var(--text3); margin-top: 2px; }
-
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--radius-sm);
-  font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: 'DM Sans', sans-serif; }
-.btn-primary { background: var(--green); color: #000; }
-.btn-primary:hover { background: var(--green-dark); box-shadow: 0 4px 16px rgba(0,230,118,0.25); }
-.btn-danger { background: rgba(255,82,82,0.15); color: var(--red); border: 1px solid rgba(255,82,82,0.3); }
-.btn-danger:hover { background: rgba(255,82,82,0.25); }
-.btn-secondary { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
-.btn-secondary:hover { background: var(--surface); color: var(--text); }
-.btn-sm { padding: 6px 12px; font-size: 12px; }
-.btn-icon { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); padding: 6px 10px; }
-.btn-icon:hover { color: var(--green); border-color: var(--green); }
-
-table { width: 100%; border-collapse: collapse; }
-thead th { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--text3); padding: 10px 14px; border-bottom: 1px solid var(--border2); text-align: left; }
-tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background .1s; }
-tbody tr:hover { background: rgba(255,255,255,0.02); }
-tbody td { padding: 12px 14px; font-size: 13.5px; color: var(--text2); }
-tbody td strong { color: var(--text); }
-.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
-.badge-green { background: var(--green-dim); color: var(--green); }
-.badge-red { background: rgba(255,82,82,0.12); color: var(--red); }
-.badge-yellow { background: rgba(255,215,64,0.12); color: var(--yellow); }
-.badge-blue { background: rgba(64,196,255,0.12); color: var(--blue); }
-
-/* ─── MODAL / FORM ─── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
-  display: none; align-items: center; justify-content: center; z-index: 1000; }
-.modal-overlay.open { display: flex; }
-.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
-  width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 40px 80px rgba(0,0,0,0.8); }
-.modal-header { padding: 24px 28px 0; display: flex; align-items: center; justify-content: space-between; }
-.modal-title { font-size: 18px; font-weight: 700; }
-.modal-close { background: none; border: none; color: var(--text3); font-size: 22px; cursor: pointer;
-  padding: 4px; line-height: 1; transition: color .15s; }
-.modal-close:hover { color: var(--text); }
-.modal-body { padding: 20px 28px 28px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.form-group { margin-bottom: 16px; }
-.form-group.full { grid-column: 1 / -1; }
-.form-group label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
-  text-transform: uppercase; color: var(--text3); margin-bottom: 7px; }
-.form-group input, .form-group select { width: 100%; background: var(--bg3);
-  border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 12px 14px;
-  color: var(--text); font-size: 14px; font-family: 'DM Sans', sans-serif; outline: none; transition: all .2s; }
-.form-group input:focus, .form-group select:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-dim); }
-.form-group select option { background: var(--bg2); }
-.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
-
-/* ─── TOAST ─── */
-#toast { position: fixed; bottom: 28px; right: 28px; z-index: 9999;
-  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
-  padding: 14px 20px; font-size: 14px; font-weight: 500; display: none;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5); max-width: 360px; }
-#toast.success { border-color: var(--green); color: var(--green); }
-#toast.error { border-color: var(--red); color: var(--red); }
-
-/* ─── TIME IDEAL ─── */
-.time-ideal-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
-.player-card { display: flex; align-items: center; gap: 14px; padding: 14px;
-  background: var(--bg3); border-radius: var(--radius-sm); border: 1px solid var(--border2); margin-bottom: 10px; }
-.player-rank { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--text3); width: 36px; text-align: center; }
-.player-rank.gold { color: var(--yellow); }
-.player-info { flex: 1; }
-.player-name { font-weight: 600; font-size: 14px; color: var(--text); }
-.player-pos { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
-.player-score { text-align: right; }
-.player-score .score { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--green); }
-.player-score .score-label { font-size: 10px; color: var(--text3); }
-.alerta-box { background: rgba(255,215,64,0.08); border: 1px solid rgba(255,215,64,0.3);
-  border-radius: var(--radius-sm); padding: 14px 16px; color: var(--yellow); font-size: 13px; margin-bottom: 16px; }
-
-/* ─── EMPTY STATE ─── */
-.empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
-.empty-state .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
-.empty-state p { font-size: 14px; }
-
-/* ─── LOADING ─── */
-.loading { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
-.spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border2);
-  border-top-color: var(--green); border-radius: 50%; animation: spin .7s linear infinite; margin-right: 8px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ─── SCROLLBAR ─── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text3); }
-
-/* ─── SCORE MINI ─── */
-.score-mini { display: flex; gap: 8px; flex-wrap: wrap; }
-.score-mini span { font-family: 'JetBrains Mono', monospace; font-size: 11px;
-  background: var(--bg3); border: 1px solid var(--border2); padding: 2px 8px; border-radius: 4px; }
-
-.confirm-dialog { background: var(--bg2); border: 1px solid var(--red); border-radius: var(--radius);
-  padding: 28px; text-align: center; width: 380px; }
-.confirm-dialog h3 { font-size: 17px; margin-bottom: 10px; }
-.confirm-dialog p { font-size: 13px; color: var(--text2); margin-bottom: 24px; line-height: 1.6; }
-.confirm-btns { display: flex; gap: 10px; justify-content: center; }
-</style>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<!-- ═══════ LOGIN ═══════ -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
@@ -242,9 +28,7 @@ tbody td strong { color: var(--text); }
   </div>
 </div>
 
-<!-- ═══════ APP ═══════ -->
 <div id="app">
-  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-brand">
       <div class="brand">TECHMISTER</div>
@@ -259,7 +43,7 @@ tbody td strong { color: var(--text); }
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Elenco</div>
-      <div class="nav-item" onclick="navigate('jogadores')"><span class="icon">👤</span> Jogadores</div>
+      <div class="nav-item" onclick="navigate('jogadores')"><span class="icon">🏃</span> Jogadores</div>
     </div>
 
     <div class="sidebar-section">
@@ -272,7 +56,7 @@ tbody td strong { color: var(--text); }
 
     <div class="sidebar-section">
       <div class="sidebar-section-label">Análise</div>
-      <div class="nav-item" id="nav-timeideal" onclick="navigate('timeideal')"><span class="icon">🏆</span> Time Ideal</div>
+      <div class="nav-item" id="nav-timeideal" onclick="navigate('timeideal')"><span class="icon">⚡</span> Time Ideal</div>
     </div>
 
     <div class="nav-logout" onclick="doLogout()">
@@ -280,7 +64,6 @@ tbody td strong { color: var(--text); }
     </div>
   </div>
 
-  <!-- MAIN -->
   <div class="main">
     <div class="topbar">
       <div>
@@ -290,11 +73,10 @@ tbody td strong { color: var(--text); }
     </div>
     <div class="content">
 
-      <!-- DASHBOARD -->
       <div class="view active" id="view-dashboard">
         <div class="stats-grid">
           <div class="stat-card green">
-            <div class="stat-icon">👤</div>
+            <div class="stat-icon">🏃</div>
             <div class="stat-value" id="stat-jogadores">—</div>
             <div class="stat-label">Jogadores</div>
           </div>
@@ -329,7 +111,6 @@ tbody td strong { color: var(--text); }
         </div>
       </div>
 
-      <!-- JOGADORES -->
       <div class="view" id="view-jogadores">
         <div class="card">
           <div class="card-header">
@@ -343,7 +124,6 @@ tbody td strong { color: var(--text); }
         </div>
       </div>
 
-      <!-- TREINOS -->
       <div class="view" id="view-treinos">
         <div class="card">
           <div class="card-header">
@@ -357,7 +137,6 @@ tbody td strong { color: var(--text); }
         </div>
       </div>
 
-      <!-- COMPORTAMENTOS -->
       <div class="view" id="view-comportamentos">
         <div class="card">
           <div class="card-header">
@@ -371,7 +150,6 @@ tbody td strong { color: var(--text); }
         </div>
       </div>
 
-      <!-- PARTIDAS -->
       <div class="view" id="view-partidas">
         <div class="card">
           <div class="card-header">
@@ -385,7 +163,6 @@ tbody td strong { color: var(--text); }
         </div>
       </div>
 
-      <!-- DESEMPENHOS -->
       <div class="view" id="view-desempenhos">
         <div class="card">
           <div class="card-header">
@@ -399,7 +176,6 @@ tbody td strong { color: var(--text); }
         </div>
       </div>
 
-      <!-- TIME IDEAL -->
       <div class="view" id="view-timeideal">
         <div class="card">
           <div class="card-header">
@@ -418,13 +194,10 @@ tbody td strong { color: var(--text); }
         </div>
       </div>
 
-    </div><!-- /content -->
-  </div><!-- /main -->
-</div><!-- /app -->
+    </div>
+  </div>
+</div>
 
-<!-- ═══════ MODALS ═══════ -->
-
-<!-- Modal Jogador -->
 <div class="modal-overlay" id="modal-jogador">
   <div class="modal">
     <div class="modal-header">
@@ -479,7 +252,6 @@ tbody td strong { color: var(--text); }
   </div>
 </div>
 
-<!-- Modal Treino -->
 <div class="modal-overlay" id="modal-treino">
   <div class="modal">
     <div class="modal-header">
@@ -515,7 +287,6 @@ tbody td strong { color: var(--text); }
   </div>
 </div>
 
-<!-- Modal Comportamento -->
 <div class="modal-overlay" id="modal-comportamento">
   <div class="modal">
     <div class="modal-header">
@@ -554,7 +325,6 @@ tbody td strong { color: var(--text); }
   </div>
 </div>
 
-<!-- Modal Partida -->
 <div class="modal-overlay" id="modal-partida">
   <div class="modal">
     <div class="modal-header">
@@ -593,7 +363,6 @@ tbody td strong { color: var(--text); }
   </div>
 </div>
 
-<!-- Modal Desempenho -->
 <div class="modal-overlay" id="modal-desempenho">
   <div class="modal">
     <div class="modal-header">
@@ -640,10 +409,9 @@ tbody td strong { color: var(--text); }
   </div>
 </div>
 
-<!-- Modal Confirmação -->
 <div class="modal-overlay" id="modal-confirm">
   <div class="confirm-dialog">
-    <h3>Confirmar exclusão</h3>
+    <h3>Atenção</h3>
     <p id="confirm-msg">Tem certeza que deseja remover este item?</p>
     <div class="confirm-btns">
       <button class="btn btn-secondary" onclick="fecharModal('modal-confirm')">Cancelar</button>
@@ -652,526 +420,20 @@ tbody td strong { color: var(--text); }
   </div>
 </div>
 
-<!-- Toast -->
 <div id="toast"></div>
 
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/jogadores.js"></script>
+<script src="js/treinos.js"></script>
+<script src="js/comportamentos.js"></script>
+<script src="js/partidas.js"></script>
+<script src="js/desempenhos.js"></script>
+<script src="js/timeideal.js"></script>
+
 <script>
-// ─── CONFIG ───
-const API = 'http://localhost:8080/api';
-let token = null;
-let perfil = null;
-let jogadoresList = [];
-let partidasList = [];
-
-// ─── UTILS ───
-function toast(msg, type='success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = type; t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 3500);
-}
-
-function fecharModal(id) {
-  document.getElementById(id).classList.remove('open');
-}
-
-function abrirModal(id) {
-  document.getElementById(id).classList.add('open');
-}
-
-function confirmar(msg, fn) {
-  document.getElementById('confirm-msg').textContent = msg;
-  document.getElementById('confirm-ok-btn').onclick = () => { fecharModal('modal-confirm'); fn(); };
-  abrirModal('modal-confirm');
-}
-
-function fmt(d) { return d ? d.split('T')[0] : '—'; }
-function fmtPos(p) {
-  const m = { GOLEIRO:'Goleiro', LATERAL_DIREITO:'Lat. Dir.', LATERAL_ESQUERDO:'Lat. Esq.',
-    ZAGUEIRO:'Zagueiro', VOLANTE:'Volante', MEIO_CAMPO:'Meia', MEIA_ATACANTE:'Meia Atac.',
-    PONTA_DIREITA:'Ponta Dir.', PONTA_ESQUERDA:'Ponta Esq.', ATACANTE:'Atacante' };
-  return m[p] || p;
-}
-
-async function req(method, path, body) {
-  const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
-  if (body) opts.body = JSON.stringify(body);
-  const res = await fetch(API + path, opts);
-  const data = res.status !== 204 ? await res.json().catch(() => ({})) : {};
-  if (!res.ok) throw new Error(data.mensagem || `Erro ${res.status}`);
-  return data;
-}
-
-// ─── AUTH ───
-async function doLogin() {
-  const username = document.getElementById('login-username').value.trim();
-  const senha = document.getElementById('login-password').value;
-  const err = document.getElementById('login-error');
-  err.style.display = 'none';
-  try {
-    const data = await fetch(`${API}/auth/login`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, senha })
-    }).then(r => { if (!r.ok) throw new Error(); return r.json(); });
-    token = data.token;
-    perfil = data.perfil;
-    document.getElementById('sidebar-username').textContent = data.username;
-    document.getElementById('sidebar-perfil').textContent = data.perfil;
-    if (perfil !== 'TREINADOR') document.getElementById('nav-timeideal').style.display = 'none';
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    navigate('dashboard');
-    carregarDashboard();
-    document.getElementById('login-password').value = '';
-  } catch(e) { err.style.display = 'block'; }
-}
-
-function doLogout() {
-  token = null; perfil = null;
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-}
-
-document.getElementById('login-password').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-document.getElementById('login-username').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-
-// ─── NAVEGAÇÃO ───
-const views = { dashboard:'Dashboard', jogadores:'Jogadores', treinos:'Treinos',
-  comportamentos:'Comportamentos', partidas:'Partidas', desempenhos:'Desempenhos', timeideal:'Time Ideal' };
-const subs = { dashboard:'Visão geral do sistema', jogadores:'Gestão do elenco (RF-002 a 005)',
-  treinos:'Estatísticas de acertos e erros (RF-006 a 009)', comportamentos:'Notas comportamentais (RF-010 a 013)',
-  partidas:'Calendário de jogos (RF-014 a 017)', desempenhos:'Scout dos atletas (RF-018 a 021)',
-  timeideal:'Escalação automática semanal (RF-022)' };
-
-function navigate(id) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById(`view-${id}`).classList.add('active');
-  document.querySelector(`[onclick="navigate('${id}')"]`)?.classList.add('active');
-  document.getElementById('topbar-title').textContent = views[id];
-  document.getElementById('topbar-sub').textContent = subs[id];
-  const loaders = { jogadores: carregarJogadores, treinos: carregarTreinos,
-    comportamentos: carregarComportamentos, partidas: carregarPartidas, desempenhos: carregarDesempenhos };
-  if (loaders[id]) loaders[id]();
-}
-
-// ─── DASHBOARD ───
-async function carregarDashboard() {
-  try {
-    const [j, t, p, d] = await Promise.all([
-      req('GET','/jogadores'), req('GET','/treinos'),
-      req('GET','/partidas'), req('GET','/desempenhos')
-    ]);
-    document.getElementById('stat-jogadores').textContent = j.length;
-    document.getElementById('stat-treinos').textContent = t.length;
-    document.getElementById('stat-partidas').textContent = p.length;
-    document.getElementById('stat-desempenhos').textContent = d.length;
-  } catch(e) {}
-}
-
-// ─── JOGADORES ───
-async function carregarJogadores() {
-  const el = document.getElementById('tabela-jogadores');
-  el.innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
-  try {
-    const lista = await req('GET','/jogadores');
-    jogadoresList = lista;
-    if (!lista.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div><p>Nenhum jogador cadastrado</p></div>'; return; }
-    el.innerHTML = `<table>
-      <thead><tr><th>Nome</th><th>Documento</th><th>Posição</th><th>Altura</th><th>Peso</th><th>Status</th><th>Ações</th></tr></thead>
-      <tbody>${lista.map(j => `<tr>
-        <td><strong>${j.nome}</strong></td>
-        <td style="font-family:'JetBrains Mono',monospace;font-size:12px">${j.documento}</td>
-        <td><span class="badge badge-blue">${fmtPos(j.posicao)}</span></td>
-        <td>${j.alturaCm ? j.alturaCm+'cm' : '—'}</td>
-        <td>${j.pesoKg ? j.pesoKg+'kg' : '—'}</td>
-        <td><span class="badge ${j.ativo?'badge-green':'badge-red'}">${j.ativo?'Ativo':'Inativo'}</span></td>
-        <td style="display:flex;gap:6px">
-          <button class="btn btn-icon btn-sm" onclick="editarJogador(${j.id})">✏️</button>
-          <button class="btn btn-icon btn-sm" onclick="removerJogador(${j.id},'${j.nome}')">🗑️</button>
-        </td>
-      </tr>`).join('')}</tbody>
-    </table>`;
-  } catch(e) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${e.message}</p></div>`; }
-}
-
-function abrirModalJogador(j={}) {
-  document.getElementById('modal-jogador-title').textContent = j.id ? 'Editar Jogador' : 'Novo Jogador';
-  document.getElementById('jogador-id').value = j.id||'';
-  document.getElementById('jogador-nome').value = j.nome||'';
-  document.getElementById('jogador-documento').value = j.documento||'';
-  document.getElementById('jogador-posicao').value = j.posicao||'';
-  document.getElementById('jogador-altura').value = j.alturaCm||'';
-  document.getElementById('jogador-peso').value = j.pesoKg||'';
-  document.getElementById('jogador-nascimento').value = j.dataNascimento||'';
-  abrirModal('modal-jogador');
-}
-
-async function editarJogador(id) {
-  const j = jogadoresList.find(x => x.id===id);
-  if (j) abrirModalJogador(j);
-}
-
-async function salvarJogador() {
-  const id = document.getElementById('jogador-id').value;
-  const body = {
-    nome: document.getElementById('jogador-nome').value,
-    documento: document.getElementById('jogador-documento').value,
-    posicao: document.getElementById('jogador-posicao').value,
-    alturaCm: parseInt(document.getElementById('jogador-altura').value)||null,
-    pesoKg: parseFloat(document.getElementById('jogador-peso').value)||null,
-    dataNascimento: document.getElementById('jogador-nascimento').value||null,
-  };
-  try {
-    if (id) await req('PUT',`/jogadores/${id}`, body);
-    else await req('POST','/jogadores', body);
-    fecharModal('modal-jogador');
-    toast(id ? 'Jogador atualizado!' : 'Jogador cadastrado!');
-    carregarJogadores(); carregarDashboard();
-  } catch(e) { toast(e.message,'error'); }
-}
-
-function removerJogador(id, nome) {
-  confirmar(`Remover o jogador "${nome}"? Esta ação não pode ser desfeita.`, async () => {
-    try { await req('DELETE',`/jogadores/${id}`); toast('Jogador removido!'); carregarJogadores(); carregarDashboard(); }
-    catch(e) { toast(e.message,'error'); }
-  });
-}
-
-// ─── TREINOS ───
-async function carregarTreinos() {
-  const el = document.getElementById('tabela-treinos');
-  el.innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
-  try {
-    const lista = await req('GET','/treinos');
-    if (!lista.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚽</div><p>Nenhum treino registrado nesta semana</p></div>'; return; }
-    el.innerHTML = `<table>
-      <thead><tr><th>Jogador</th><th>Data</th><th>Acertos</th><th>Erros</th><th>Aproveit.</th><th>Ações</th></tr></thead>
-      <tbody>${lista.map(t => {
-        const tot = t.acertos+t.erros; const pct = tot ? Math.round(t.acertos/tot*100) : 0;
-        return `<tr>
-          <td><strong>${t.jogadorNome}</strong></td>
-          <td>${fmt(t.dataTreino)}</td>
-          <td><span class="badge badge-green">${t.acertos}</span></td>
-          <td><span class="badge badge-red">${t.erros}</span></td>
-          <td><span class="badge ${pct>=70?'badge-green':pct>=50?'badge-yellow':'badge-red'}">${pct}%</span></td>
-          <td style="display:flex;gap:6px">
-            <button class="btn btn-icon btn-sm" onclick="editarTreino(${t.id})">✏️</button>
-            <button class="btn btn-icon btn-sm" onclick="removerTreino(${t.id})">🗑️</button>
-          </td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>`;
-  } catch(e) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${e.message}</p></div>`; }
-}
-
-let treinosList = [];
-async function abrirModalTreino(t={}) {
-  document.getElementById('modal-treino-title').textContent = t.id ? 'Editar Treino' : 'Novo Treino';
-  document.getElementById('treino-id').value = t.id||'';
-  document.getElementById('treino-data').value = t.dataTreino||new Date().toISOString().split('T')[0];
-  document.getElementById('treino-acertos').value = t.acertos||'';
-  document.getElementById('treino-erros').value = t.erros||'';
-  const sel = document.getElementById('treino-jogador');
-  sel.innerHTML = '<option value="">Selecione...</option>';
-  if (!jogadoresList.length) await carregarJogadoresCache();
-  jogadoresList.forEach(j => sel.innerHTML += `<option value="${j.id}" ${t.jogadorId==j.id?'selected':''}>${j.nome}</option>`);
-  abrirModal('modal-treino');
-}
-
-async function editarTreino(id) {
-  if (!treinosList.length) treinosList = await req('GET','/treinos').catch(()=>[]);
-  const t = treinosList.find(x=>x.id===id); if(t) abrirModalTreino(t);
-}
-
-async function salvarTreino() {
-  const id = document.getElementById('treino-id').value;
-  const body = { jogadorId: parseInt(document.getElementById('treino-jogador').value),
-    dataTreino: document.getElementById('treino-data').value,
-    acertos: parseInt(document.getElementById('treino-acertos').value)||0,
-    erros: parseInt(document.getElementById('treino-erros').value)||0 };
-  try {
-    if (id) await req('PUT',`/treinos/${id}`, body);
-    else await req('POST','/treinos', body);
-    fecharModal('modal-treino'); toast(id?'Treino atualizado!':'Treino cadastrado!');
-    carregarTreinos(); carregarDashboard();
-  } catch(e) { toast(e.message,'error'); }
-}
-
-function removerTreino(id) {
-  confirmar('Remover este treino?', async () => {
-    try { await req('DELETE',`/treinos/${id}`); toast('Treino removido!'); carregarTreinos(); }
-    catch(e) { toast(e.message,'error'); }
-  });
-}
-
-// ─── COMPORTAMENTOS ───
-async function carregarComportamentos() {
-  const el = document.getElementById('tabela-comportamentos');
-  el.innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
-  try {
-    const lista = await req('GET','/comportamentos');
-    if (!lista.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🧠</div><p>Nenhum comportamento registrado</p></div>'; return; }
-    el.innerHTML = `<table>
-      <thead><tr><th>Jogador</th><th>Data</th><th>Foco</th><th>Disciplina</th><th>Atitude</th><th>Média</th><th>Ações</th></tr></thead>
-      <tbody>${lista.map(c => {
-        const med = ((c.notaFoco+c.notaDisciplina+c.notaAtitude)/3).toFixed(1);
-        return `<tr>
-          <td><strong>${c.jogadorNome}</strong></td>
-          <td>${fmt(c.dataAvaliacao)}</td>
-          <td><span class="badge badge-blue">${c.notaFoco}</span></td>
-          <td><span class="badge badge-blue">${c.notaDisciplina}</span></td>
-          <td><span class="badge badge-blue">${c.notaAtitude}</span></td>
-          <td><span class="badge ${med>=7?'badge-green':med>=5?'badge-yellow':'badge-red'}">${med}</span></td>
-          <td style="display:flex;gap:6px">
-            <button class="btn btn-icon btn-sm" onclick="editarComp(${c.id})">✏️</button>
-            <button class="btn btn-icon btn-sm" onclick="removerComp(${c.id})">🗑️</button>
-          </td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>`;
-  } catch(e) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${e.message}</p></div>`; }
-}
-
-let compsList = [];
-async function abrirModalComportamento(c={}) {
-  document.getElementById('modal-comp-title').textContent = c.id ? 'Editar Comportamento' : 'Nova Avaliação';
-  document.getElementById('comp-id').value = c.id||'';
-  document.getElementById('comp-data').value = c.dataAvaliacao||new Date().toISOString().split('T')[0];
-  document.getElementById('comp-foco').value = c.notaFoco!=null ? c.notaFoco : '';
-  document.getElementById('comp-disciplina').value = c.notaDisciplina!=null ? c.notaDisciplina : '';
-  document.getElementById('comp-atitude').value = c.notaAtitude!=null ? c.notaAtitude : '';
-  const sel = document.getElementById('comp-jogador');
-  sel.innerHTML = '<option value="">Selecione...</option>';
-  if (!jogadoresList.length) await carregarJogadoresCache();
-  jogadoresList.forEach(j => sel.innerHTML += `<option value="${j.id}" ${c.jogadorId==j.id?'selected':''}>${j.nome}</option>`);
-  abrirModal('modal-comportamento');
-}
-
-async function editarComp(id) {
-  if (!compsList.length) compsList = await req('GET','/comportamentos').catch(()=>[]);
-  const c = compsList.find(x=>x.id===id); if(c) abrirModalComportamento(c);
-}
-
-async function salvarComportamento() {
-  const id = document.getElementById('comp-id').value;
-  const body = { jogadorId: parseInt(document.getElementById('comp-jogador').value),
-    dataAvaliacao: document.getElementById('comp-data').value,
-    notaFoco: parseInt(document.getElementById('comp-foco').value),
-    notaDisciplina: parseInt(document.getElementById('comp-disciplina').value),
-    notaAtitude: parseInt(document.getElementById('comp-atitude').value) };
-  try {
-    if (id) await req('PUT',`/comportamentos/${id}`, body);
-    else await req('POST','/comportamentos', body);
-    fecharModal('modal-comportamento'); toast(id?'Avaliação atualizada!':'Avaliação cadastrada!');
-    carregarComportamentos();
-  } catch(e) { toast(e.message,'error'); }
-}
-
-function removerComp(id) {
-  confirmar('Remover esta avaliação comportamental?', async () => {
-    try { await req('DELETE',`/comportamentos/${id}`); toast('Avaliação removida!'); carregarComportamentos(); }
-    catch(e) { toast(e.message,'error'); }
-  });
-}
-
-// ─── PARTIDAS ───
-async function carregarPartidas() {
-  const el = document.getElementById('tabela-partidas');
-  el.innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
-  try {
-    const lista = await req('GET','/partidas');
-    partidasList = lista;
-    if (!lista.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏟️</div><p>Nenhuma partida cadastrada</p></div>'; return; }
-    el.innerHTML = `<table>
-      <thead><tr><th>Adversário</th><th>Data</th><th>Local</th><th>Placar</th><th>Ações</th></tr></thead>
-      <tbody>${lista.map(p => {
-        const placar = (p.golsPro!=null&&p.golsContra!=null) ? `${p.golsPro} × ${p.golsContra}` : '—';
-        const badge = p.golsPro>p.golsContra?'badge-green':p.golsPro<p.golsContra?'badge-red':'badge-yellow';
-        return `<tr>
-          <td><strong>${p.adversario}</strong></td>
-          <td>${fmt(p.dataJogo)}</td>
-          <td>${p.local||'—'}</td>
-          <td>${placar!=='—'?`<span class="badge ${badge}">${placar}</span>`:'—'}</td>
-          <td style="display:flex;gap:6px">
-            <button class="btn btn-icon btn-sm" onclick="editarPartida(${p.id})">✏️</button>
-            <button class="btn btn-icon btn-sm" onclick="removerPartida(${p.id},'${p.adversario}')">🗑️</button>
-          </td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>`;
-  } catch(e) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${e.message}</p></div>`; }
-}
-
-async function abrirModalPartida(p={}) {
-  document.getElementById('modal-partida-title').textContent = p.id ? 'Editar Partida' : 'Nova Partida';
-  document.getElementById('partida-id').value = p.id||'';
-  document.getElementById('partida-adversario').value = p.adversario||'';
-  document.getElementById('partida-data').value = p.dataJogo||'';
-  document.getElementById('partida-local').value = p.local||'';
-  document.getElementById('partida-golspro').value = p.golsPro!=null?p.golsPro:'';
-  document.getElementById('partida-golscontra').value = p.golsContra!=null?p.golsContra:'';
-  abrirModal('modal-partida');
-}
-
-async function editarPartida(id) {
-  const p = partidasList.find(x=>x.id===id); if(p) abrirModalPartida(p);
-}
-
-async function salvarPartida() {
-  const id = document.getElementById('partida-id').value;
-  const body = { adversario: document.getElementById('partida-adversario').value,
-    dataJogo: document.getElementById('partida-data').value,
-    local: document.getElementById('partida-local').value||null,
-    golsPro: document.getElementById('partida-golspro').value!==''?parseInt(document.getElementById('partida-golspro').value):null,
-    golsContra: document.getElementById('partida-golscontra').value!==''?parseInt(document.getElementById('partida-golscontra').value):null };
-  try {
-    if (id) await req('PUT',`/partidas/${id}`, body);
-    else await req('POST','/partidas', body);
-    fecharModal('modal-partida'); toast(id?'Partida atualizada!':'Partida cadastrada!');
-    carregarPartidas(); carregarDashboard();
-  } catch(e) { toast(e.message,'error'); }
-}
-
-function removerPartida(id, adv) {
-  confirmar(`Remover a partida contra "${adv}"?`, async () => {
-    try { await req('DELETE',`/partidas/${id}`); toast('Partida removida!'); carregarPartidas(); carregarDashboard(); }
-    catch(e) { toast(e.message,'error'); }
-  });
-}
-
-// ─── DESEMPENHOS ───
-async function carregarDesempenhos() {
-  const el = document.getElementById('tabela-desempenhos');
-  el.innerHTML = '<div class="loading"><span class="spinner"></span>Carregando...</div>';
-  try {
-    const lista = await req('GET','/desempenhos');
-    if (!lista.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📈</div><p>Nenhum desempenho registrado</p></div>'; return; }
-    el.innerHTML = `<table>
-      <thead><tr><th>Jogador</th><th>Partida</th><th>Nota</th><th>Gols</th><th>Assist.</th><th>Cartões</th><th>Ações</th></tr></thead>
-      <tbody>${lista.map(d => `<tr>
-        <td><strong>${d.jogadorNome}</strong></td>
-        <td>${d.adversario} <span style="color:var(--text3);font-size:11px">${fmt(d.dataJogo)}</span></td>
-        <td><span class="badge ${d.nota>=7?'badge-green':d.nota>=5?'badge-yellow':'badge-red'}">${d.nota}</span></td>
-        <td>${d.gols}</td>
-        <td>${d.assistencias}</td>
-        <td><span style="color:var(--yellow)">${d.cartoesAmarelos}🟨</span> <span style="color:var(--red)">${d.cartoesVermelhos}🟥</span></td>
-        <td style="display:flex;gap:6px">
-          <button class="btn btn-icon btn-sm" onclick="editarDesemp(${d.id})">✏️</button>
-          <button class="btn btn-icon btn-sm" onclick="removerDesemp(${d.id})">🗑️</button>
-        </td>
-      </tr>`).join('')}</tbody>
-    </table>`;
-  } catch(e) { el.innerHTML = `<div class="empty-state"><p style="color:var(--red)">${e.message}</p></div>`; }
-}
-
-let desempList = [];
-async function abrirModalDesempenho(d={}) {
-  document.getElementById('modal-desemp-title').textContent = d.id ? 'Editar Desempenho' : 'Novo Desempenho';
-  document.getElementById('desemp-id').value = d.id||'';
-  document.getElementById('desemp-nota').value = d.nota||'';
-  document.getElementById('desemp-gols').value = d.gols||0;
-  document.getElementById('desemp-assist').value = d.assistencias||0;
-  document.getElementById('desemp-amarelos').value = d.cartoesAmarelos||0;
-  document.getElementById('desemp-vermelhos').value = d.cartoesVermelhos||0;
-  if (!jogadoresList.length) await carregarJogadoresCache();
-  if (!partidasList.length) partidasList = await req('GET','/partidas').catch(()=>[]);
-  const sj = document.getElementById('desemp-jogador');
-  sj.innerHTML = '<option value="">Selecione...</option>';
-  jogadoresList.forEach(j => sj.innerHTML += `<option value="${j.id}" ${d.jogadorId==j.id?'selected':''}>${j.nome}</option>`);
-  const sp = document.getElementById('desemp-partida');
-  sp.innerHTML = '<option value="">Selecione...</option>';
-  partidasList.forEach(p => sp.innerHTML += `<option value="${p.id}" ${d.partidaId==p.id?'selected':''}>${p.adversario} (${fmt(p.dataJogo)})</option>`);
-  abrirModal('modal-desempenho');
-}
-
-async function editarDesemp(id) {
-  if (!desempList.length) desempList = await req('GET','/desempenhos').catch(()=>[]);
-  const d = desempList.find(x=>x.id===id); if(d) abrirModalDesempenho(d);
-}
-
-async function salvarDesempenho() {
-  const id = document.getElementById('desemp-id').value;
-  const body = { partidaId: parseInt(document.getElementById('desemp-partida').value),
-    jogadorId: parseInt(document.getElementById('desemp-jogador').value),
-    nota: parseFloat(document.getElementById('desemp-nota').value),
-    gols: parseInt(document.getElementById('desemp-gols').value)||0,
-    assistencias: parseInt(document.getElementById('desemp-assist').value)||0,
-    cartoesAmarelos: parseInt(document.getElementById('desemp-amarelos').value)||0,
-    cartoesVermelhos: parseInt(document.getElementById('desemp-vermelhos').value)||0 };
-  try {
-    if (id) await req('PUT',`/desempenhos/${id}`, body);
-    else await req('POST','/desempenhos', body);
-    fecharModal('modal-desempenho'); toast(id?'Desempenho atualizado!':'Desempenho cadastrado!');
-    carregarDesempenhos(); carregarDashboard();
-  } catch(e) { toast(e.message,'error'); }
-}
-
-function removerDesemp(id) {
-  confirmar('Remover este desempenho?', async () => {
-    try { await req('DELETE',`/desempenhos/${id}`); toast('Desempenho removido!'); carregarDesempenhos(); }
-    catch(e) { toast(e.message,'error'); }
-  });
-}
-
-// ─── TIME IDEAL ───
-async function gerarTimeIdeal() {
-  const el = document.getElementById('resultado-timeideal');
-  el.innerHTML = '<div class="loading"><span class="spinner"></span>Calculando médias...</div>';
-  try {
-    const data = await req('POST','/time-ideal/gerar');
-    let html = '';
-    if (data.alerta) html += `<div class="alerta-box">⚠️ ${data.alerta}</div>`;
-    html += `<p style="font-size:12px;color:var(--text3);margin-bottom:16px">
-      Semana: ${fmt(data.inicioSemana)} até ${fmt(data.fimSemana)}
-    </p>
-    <div class="time-ideal-grid">
-      <div>
-        <div class="card-title" style="margin-bottom:14px">⭐ Titulares (${data.titulares?.length||0})</div>
-        ${(data.titulares||[]).map((j,i) => `
-          <div class="player-card">
-            <div class="player-rank ${i<3?'gold':''}">${i+1}</div>
-            <div class="player-info">
-              <div class="player-name">${j.nome}</div>
-              <div class="player-pos">${fmtPos(j.posicao)}</div>
-              <div class="score-mini" style="margin-top:6px">
-                <span title="Treino">T: ${j.mediaTreino}</span>
-                <span title="Comportamento">C: ${j.mediaComportamento}</span>
-                <span title="Desempenho">D: ${j.mediaDesempenho}</span>
-              </div>
-            </div>
-            <div class="player-score">
-              <div class="score">${j.mediaFinal}</div>
-              <div class="score-label">média final</div>
-            </div>
-          </div>`).join('')}
-      </div>
-      <div>
-        <div class="card-title" style="margin-bottom:14px">🪑 Reservas (${data.reservas?.length||0})</div>
-        ${(data.reservas||[]).slice(0,8).map((j,i) => `
-          <div class="player-card" style="padding:10px">
-            <div class="player-rank" style="font-size:18px">${i+12}</div>
-            <div class="player-info">
-              <div class="player-name" style="font-size:13px">${j.nome}</div>
-              <div class="player-pos">${fmtPos(j.posicao)}</div>
-            </div>
-            <div class="player-score">
-              <div class="score" style="font-size:22px">${j.mediaFinal}</div>
-            </div>
-          </div>`).join('')}
-      </div>
-    </div>`;
-    el.innerHTML = html;
-  } catch(e) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p style="color:var(--red)">${e.message}</p></div>`;
-  }
-}
-
-// ─── CACHE JOGADORES ───
-async function carregarJogadoresCache() {
-  try { jogadoresList = await req('GET','/jogadores'); } catch(e) {}
-}
-
-// Fechar modal clicando fora
+// Evento global para fechar modais clicando fora
 document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); });
 });
