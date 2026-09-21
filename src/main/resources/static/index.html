@@ -1,442 +1,79 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="auto">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TechMister — Sistema de Desempenho Esportivo</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050907">
+<title>Overall — Pelada</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/fx.css">
 </head>
 <body>
 
+<!-- fundo: aurora desfocada (figura-fundo) -->
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<!-- LOGIN -->
 <div id="login-screen">
-  <div class="login-card">
+  <form class="card login-card" onsubmit="event.preventDefault(); doLogin();">
     <div class="login-logo">
-      <div class="brand">TECHMISTER</div>
-      <div class="tagline">Sistema de Desempenho Esportivo</div>
+      <div id="login-mark" class="login-mark"></div>
+      <div class="word grad-text">OVERALL</div>
+      <div class="eyebrow" style="margin-top:10px">Pelada de fim de semana</div>
     </div>
-    <div class="login-field">
-      <label>Usuário</label>
-      <input type="text" id="login-username" placeholder="admin" autocomplete="off">
+    <label class="field"><span>Usuário</span>
+      <input type="text" id="login-username" autocomplete="username" autocapitalize="none" placeholder="admin"></label>
+    <label class="field"><span>Senha</span>
+      <input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••"></label>
+    <button class="btn primary block lg" type="submit">Entrar</button>
+    <div class="login-error" id="login-error" hidden></div>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="app" hidden>
+  <header class="topbar">
+    <div class="logo"><span id="topbar-logo"></span>OVERALL</div>
+    <div class="topbar-title" id="topbar-title"></div>
+  </header>
+
+  <main id="view"></main>
+
+  <nav class="nav" id="nav" aria-label="Navegação principal">
+    <span class="nav-pill" aria-hidden="true"></span>
+    <a href="#/pelada" data-tab="pelada" data-ic="pitch"><span>Pelada</span></a>
+    <a href="#/jogadores" data-tab="jogadores" data-ic="users"><span>Jogadores</span></a>
+    <a href="#/rankings" data-tab="rankings" data-ic="trophy"><span>Rankings</span></a>
+    <a href="#/conta" data-tab="conta" data-ic="user"><span>Conta</span></a>
+  </nav>
+</div>
+
+<!-- Gaveta reutilizada por todos os modais -->
+<div id="sheet-overlay" hidden>
+  <div id="sheet" role="dialog" aria-modal="true">
+    <div class="sheet-grip"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="sheet-title"></div>
+      <button class="btn icon sm ghost" onclick="fecharSheet()" aria-label="Fechar"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
-    <div class="login-field">
-      <label>Senha</label>
-      <input type="password" id="login-password" placeholder="••••••••">
-    </div>
-    <button class="btn-login" onclick="doLogin()">Entrar</button>
-    <div class="login-error" id="login-error">Usuário ou senha inválidos</div>
+    <div class="sheet-body" id="sheet-body"></div>
   </div>
 </div>
 
-<div id="app">
-  <div class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand">TECHMISTER</div>
-      <div class="user-info" id="sidebar-username">—</div>
-      <div class="user-badge" id="sidebar-perfil">—</div>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Geral</div>
-      <div class="nav-item active" onclick="navigate('dashboard')"><span class="icon">📊</span> Dashboard</div>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Elenco</div>
-      <div class="nav-item" onclick="navigate('jogadores')"><span class="icon">🏃</span> Jogadores</div>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Registros</div>
-      <div class="nav-item" onclick="navigate('treinos')"><span class="icon">⚽</span> Treinos</div>
-      <div class="nav-item" onclick="navigate('comportamentos')"><span class="icon">🧠</span> Comportamentos</div>
-      <div class="nav-item" onclick="navigate('partidas')"><span class="icon">🏟️</span> Partidas</div>
-      <div class="nav-item" onclick="navigate('desempenhos')"><span class="icon">📈</span> Desempenhos</div>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">Análise</div>
-      <div class="nav-item" id="nav-timeideal" onclick="navigate('timeideal')"><span class="icon">⚡</span> Time Ideal</div>
-    </div>
-
-    <div class="nav-logout" onclick="doLogout()">
-      <span class="icon">🚪</span> Sair
-    </div>
-  </div>
-
-  <div class="main">
-    <div class="topbar">
-      <div>
-        <div class="topbar-title" id="topbar-title">Dashboard</div>
-        <div class="topbar-sub" id="topbar-sub">Visão geral do sistema</div>
-      </div>
-    </div>
-    <div class="content">
-
-      <div class="view active" id="view-dashboard">
-        <div class="stats-grid">
-          <div class="stat-card green">
-            <div class="stat-icon">🏃</div>
-            <div class="stat-value" id="stat-jogadores">—</div>
-            <div class="stat-label">Jogadores</div>
-          </div>
-          <div class="stat-card blue">
-            <div class="stat-icon">⚽</div>
-            <div class="stat-value" id="stat-treinos">—</div>
-            <div class="stat-label">Treinos esta semana</div>
-          </div>
-          <div class="stat-card yellow">
-            <div class="stat-icon">🏟️</div>
-            <div class="stat-value" id="stat-partidas">—</div>
-            <div class="stat-label">Partidas</div>
-          </div>
-          <div class="stat-card red">
-            <div class="stat-icon">📈</div>
-            <div class="stat-value" id="stat-desempenhos">—</div>
-            <div class="stat-label">Avaliações</div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Bem-vindo ao TechMister</div>
-              <div class="card-subtitle">Gerencie o elenco, treinos, partidas e gere o Time Ideal semanal</div>
-            </div>
-          </div>
-          <p style="color:var(--text2);font-size:14px;line-height:1.8;">
-            Use o menu lateral para navegar entre os módulos. O <strong style="color:var(--green)">Time Ideal</strong>
-            calcula automaticamente a melhor escalação com base nas médias ponderadas de treino (peso 2),
-            comportamento (peso 1) e desempenho em partidas (peso 3).
-          </p>
-        </div>
-      </div>
-
-      <div class="view" id="view-jogadores">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Elenco</div>
-              <div class="card-subtitle">Cadastro de jogadores</div>
-            </div>
-            <button class="btn btn-primary" onclick="abrirModalJogador()">+ Novo Jogador</button>
-          </div>
-          <div id="tabela-jogadores"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
-        </div>
-      </div>
-
-      <div class="view" id="view-treinos">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Treinos da semana</div>
-              <div class="card-subtitle">Estatísticas de acertos e erros</div>
-            </div>
-            <button class="btn btn-primary" onclick="abrirModalTreino()">+ Novo Treino</button>
-          </div>
-          <div id="tabela-treinos"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
-        </div>
-      </div>
-
-      <div class="view" id="view-comportamentos">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Comportamentos</div>
-              <div class="card-subtitle">Notas de foco, disciplina e atitude</div>
-            </div>
-            <button class="btn btn-primary" onclick="abrirModalComportamento()">+ Nova Avaliação</button>
-          </div>
-          <div id="tabela-comportamentos"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
-        </div>
-      </div>
-
-      <div class="view" id="view-partidas">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Partidas</div>
-              <div class="card-subtitle">Calendário e histórico de jogos</div>
-            </div>
-            <button class="btn btn-primary" onclick="abrirModalPartida()">+ Nova Partida</button>
-          </div>
-          <div id="tabela-partidas"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
-        </div>
-      </div>
-
-      <div class="view" id="view-desempenhos">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Desempenhos em Partidas</div>
-              <div class="card-subtitle">Notas de scout dos jogadores</div>
-            </div>
-            <button class="btn btn-primary" onclick="abrirModalDesempenho()">+ Novo Desempenho</button>
-          </div>
-          <div id="tabela-desempenhos"><div class="loading"><span class="spinner"></span>Carregando...</div></div>
-        </div>
-      </div>
-
-      <div class="view" id="view-timeideal">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">Time Ideal da Semana</div>
-              <div class="card-subtitle">Cálculo automático baseado em treinos, comportamento e desempenho</div>
-            </div>
-            <button class="btn btn-primary" onclick="gerarTimeIdeal()">⚡ Gerar Time Ideal</button>
-          </div>
-          <div id="resultado-timeideal">
-            <div class="empty-state">
-              <div class="empty-icon">🏆</div>
-              <p>Clique em "Gerar Time Ideal" para calcular a melhor escalação da semana</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-jogador">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-jogador-title">Novo Jogador</div>
-      <button class="modal-close" onclick="fecharModal('modal-jogador')">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="jogador-id">
-      <div class="form-row">
-        <div class="form-group full">
-          <label>Nome completo</label>
-          <input type="text" id="jogador-nome" placeholder="Ex: Carlos Eduardo Silva">
-        </div>
-        <div class="form-group">
-          <label>Documento (CPF/RG)</label>
-          <input type="text" id="jogador-documento" placeholder="123.456.789-00">
-        </div>
-        <div class="form-group">
-          <label>Posição</label>
-          <select id="jogador-posicao">
-            <option value="">Selecione...</option>
-            <option value="GOLEIRO">Goleiro</option>
-            <option value="LATERAL_DIREITO">Lateral Direito</option>
-            <option value="LATERAL_ESQUERDO">Lateral Esquerdo</option>
-            <option value="ZAGUEIRO">Zagueiro</option>
-            <option value="VOLANTE">Volante</option>
-            <option value="MEIO_CAMPO">Meio-Campo</option>
-            <option value="MEIA_ATACANTE">Meia Atacante</option>
-            <option value="PONTA_DIREITA">Ponta Direita</option>
-            <option value="PONTA_ESQUERDA">Ponta Esquerda</option>
-            <option value="ATACANTE">Atacante</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Altura (cm)</label>
-          <input type="number" id="jogador-altura" placeholder="181">
-        </div>
-        <div class="form-group">
-          <label>Peso (kg)</label>
-          <input type="number" step="0.1" id="jogador-peso" placeholder="78.5">
-        </div>
-        <div class="form-group">
-          <label>Data de Nascimento</label>
-          <input type="date" id="jogador-nascimento">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="fecharModal('modal-jogador')">Cancelar</button>
-        <button class="btn btn-primary" onclick="salvarJogador()">Salvar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-treino">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-treino-title">Novo Treino</div>
-      <button class="modal-close" onclick="fecharModal('modal-treino')">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="treino-id">
-      <div class="form-row">
-        <div class="form-group full">
-          <label>Jogador</label>
-          <select id="treino-jogador"></select>
-        </div>
-        <div class="form-group">
-          <label>Data do Treino</label>
-          <input type="date" id="treino-data">
-        </div>
-        <div class="form-group"></div>
-        <div class="form-group">
-          <label>Acertos</label>
-          <input type="number" id="treino-acertos" min="0" placeholder="42">
-        </div>
-        <div class="form-group">
-          <label>Erros</label>
-          <input type="number" id="treino-erros" min="0" placeholder="8">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="fecharModal('modal-treino')">Cancelar</button>
-        <button class="btn btn-primary" onclick="salvarTreino()">Salvar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-comportamento">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-comp-title">Nova Avaliação Comportamental</div>
-      <button class="modal-close" onclick="fecharModal('modal-comportamento')">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="comp-id">
-      <div class="form-row">
-        <div class="form-group full">
-          <label>Jogador</label>
-          <select id="comp-jogador"></select>
-        </div>
-        <div class="form-group full">
-          <label>Data da Avaliação</label>
-          <input type="date" id="comp-data">
-        </div>
-        <div class="form-group">
-          <label>Foco (0–10)</label>
-          <input type="number" id="comp-foco" min="0" max="10" placeholder="8">
-        </div>
-        <div class="form-group">
-          <label>Disciplina (0–10)</label>
-          <input type="number" id="comp-disciplina" min="0" max="10" placeholder="9">
-        </div>
-        <div class="form-group full">
-          <label>Atitude (0–10)</label>
-          <input type="number" id="comp-atitude" min="0" max="10" placeholder="7">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="fecharModal('modal-comportamento')">Cancelar</button>
-        <button class="btn btn-primary" onclick="salvarComportamento()">Salvar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-partida">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-partida-title">Nova Partida</div>
-      <button class="modal-close" onclick="fecharModal('modal-partida')">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="partida-id">
-      <div class="form-row">
-        <div class="form-group full">
-          <label>Adversário</label>
-          <input type="text" id="partida-adversario" placeholder="Sport Club do Recife">
-        </div>
-        <div class="form-group">
-          <label>Data do Jogo</label>
-          <input type="date" id="partida-data">
-        </div>
-        <div class="form-group">
-          <label>Local</label>
-          <input type="text" id="partida-local" placeholder="Estádio Municipal">
-        </div>
-        <div class="form-group">
-          <label>Gols Pró</label>
-          <input type="number" id="partida-golspro" min="0" placeholder="3">
-        </div>
-        <div class="form-group">
-          <label>Gols Contra</label>
-          <input type="number" id="partida-golscontra" min="0" placeholder="1">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="fecharModal('modal-partida')">Cancelar</button>
-        <button class="btn btn-primary" onclick="salvarPartida()">Salvar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-desempenho">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-desemp-title">Novo Desempenho</div>
-      <button class="modal-close" onclick="fecharModal('modal-desempenho')">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="desemp-id">
-      <div class="form-row">
-        <div class="form-group full">
-          <label>Partida</label>
-          <select id="desemp-partida"></select>
-        </div>
-        <div class="form-group full">
-          <label>Jogador</label>
-          <select id="desemp-jogador"></select>
-        </div>
-        <div class="form-group full">
-          <label>Nota (0–10)</label>
-          <input type="number" id="desemp-nota" min="0" max="10" step="0.1" placeholder="8.5">
-        </div>
-        <div class="form-group">
-          <label>Gols</label>
-          <input type="number" id="desemp-gols" min="0" value="0">
-        </div>
-        <div class="form-group">
-          <label>Assistências</label>
-          <input type="number" id="desemp-assist" min="0" value="0">
-        </div>
-        <div class="form-group">
-          <label>Cartões Amarelos</label>
-          <input type="number" id="desemp-amarelos" min="0" value="0">
-        </div>
-        <div class="form-group">
-          <label>Cartões Vermelhos</label>
-          <input type="number" id="desemp-vermelhos" min="0" value="0">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="fecharModal('modal-desempenho')">Cancelar</button>
-        <button class="btn btn-primary" onclick="salvarDesempenho()">Salvar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-confirm">
-  <div class="confirm-dialog">
-    <h3>Atenção</h3>
-    <p id="confirm-msg">Tem certeza que deseja remover este item?</p>
-    <div class="confirm-btns">
-      <button class="btn btn-secondary" onclick="fecharModal('modal-confirm')">Cancelar</button>
-      <button class="btn btn-danger" id="confirm-ok-btn">Remover</button>
-    </div>
-  </div>
-</div>
-
-<div id="toast"></div>
+<div id="toast" hidden></div>
 
 <script src="js/api.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/dashboard.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/gfx.js"></script>
+<script src="js/ui.js"></script>
 <script src="js/jogadores.js"></script>
-<script src="js/treinos.js"></script>
-<script src="js/comportamentos.js"></script>
-<script src="js/partidas.js"></script>
-<script src="js/desempenhos.js"></script>
-<script src="js/timeideal.js"></script>
-
-<script>
-// Evento global para fechar modais clicando fora
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); });
-});
-</script>
+<script src="js/pelada.js"></script>
+<script src="js/partida.js"></script>
+<script src="js/rankings.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

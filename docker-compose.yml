@@ -1,20 +1,21 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: techmister-mysql
+    container_name: overall-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: techmister
+      MYSQL_DATABASE: overall
       MYSQL_ROOT_PASSWORD: root
     ports:
       - "3306:3306"
     volumes:
-      - techmister-mysql-data:/var/lib/mysql
+      - overall-mysql-data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
       interval: 5s
       timeout: 5s
       retries: 10
 
+# Para usar este MySQL: DB_PASS=root  (o usuário padrão do app já é root)
 volumes:
-  techmister-mysql-data:
+  overall-mysql-data:
