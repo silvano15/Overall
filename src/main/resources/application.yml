@@ -17,7 +17,7 @@ spring:
 
   datasource:
     # createDatabaseIfNotExist: o banco 'overall' é criado sozinho na primeira execução.
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:overall}?useSSL=false&serverTimezone=America/Recife&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:overall}?sslMode=${DB_SSL_MODE:REQUIRED}&serverTimezone=America/Recife&allowPublicKeyRetrieval=false&createDatabaseIfNotExist=true
     username: ${DB_USER:root}
     password: ${DB_PASS:}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -49,7 +49,9 @@ overall:
   jwt:
     # IMPORTANTE: em produção, o 'secret' DEVE vir de variável de ambiente.
     # A chave precisa ter no mínimo 256 bits (32 caracteres) para HS256.
-    secret: ${JWT_SECRET:troque-este-segredo-em-producao-precisa-ter-pelo-menos-32-caracteres}
+    secret: ${JWT_SECRET}
+  security:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:8080,http://127.0.0.1:8080}
     # O ADM usa pelo celular: 30 dias evita pedir senha toda semana.
     expiration-hours: ${JWT_EXPIRATION_HOURS:720}
 

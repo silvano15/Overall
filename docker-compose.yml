@@ -5,9 +5,9 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: overall
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?defina MYSQL_ROOT_PASSWORD}
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - overall-mysql-data:/var/lib/mysql
     healthcheck:
@@ -16,6 +16,7 @@ services:
       timeout: 5s
       retries: 10
 
-# Para usar este MySQL: DB_PASS=root  (o usuário padrão do app já é root)
+# Para usar este MySQL, defina MYSQL_ROOT_PASSWORD e DB_PASS com o mesmo valor.
+# Em produção, use um usuário de aplicação sem privilégios de root.
 volumes:
   overall-mysql-data:

@@ -16,10 +16,12 @@ mvn spring-boot:run
 
 Abra `http://localhost:8080/api/` (no celular: `http://<ip-do-pc>:8080/api/`).
 
-Login inicial: **admin / admin123** — troque na aba *Conta*.
+Defina `JWT_SECRET` e crie o primeiro usuário administrador diretamente no banco
+com uma senha BCrypt. Não há credencial administrativa padrão no artefato.
 
 Variáveis de ambiente: `DB_HOST`, `DB_PORT`, `DB_NAME` (padrão `overall`), `DB_USER` (padrão `root`), `DB_PASS`,
-`JWT_SECRET` (**defina em produção**), `APP_TIMEZONE` (padrão `America/Recife`).
+`DB_SSL_MODE` (padrão `REQUIRED`), `JWT_SECRET` (obrigatório), `ALLOWED_ORIGINS`,
+`APP_TIMEZONE` (padrão `America/Recife`).
 
 Há um MySQL pronto em `docker-compose.yml`. Swagger em `/api/swagger-ui.html`.
 
