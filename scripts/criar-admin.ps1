@@ -31,4 +31,5 @@ Set-Content -Encoding ascii $arquivo $sql
 
 Write-Host "`nPronto. SQL salvo em: $arquivo" -ForegroundColor Green
 Write-Host "Rode o comando abaixo, trocando HOST e USUARIO pelos dados do TiDB (a senha do banco ele pede na hora):`n"
-Write-Host "& 'C:Program FilesMySQLMySQL Server 26.7inmysql.exe' -h HOST -P 4000 -u USUARIO -p --ssl-mode=REQUIRED Overall -e \"source $($arquivo -replace '\','/')\""
+$sqlPath = $arquivo.Replace('\', '/')
+Write-Host ('& "C:\Program Files\MySQL\MySQL Server 26.7\bin\mysql.exe" -h HOST -P 4000 -u USUARIO -p --ssl-mode=REQUIRED Overall -e "source ' + $sqlPath + '"')
