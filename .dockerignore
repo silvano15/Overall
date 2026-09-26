@@ -1,0 +1,6 @@
+target/
+.git/
+.vscode/
+docs/
+*.md
+notebook-setup.ps1
