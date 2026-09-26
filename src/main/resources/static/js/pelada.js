@@ -577,7 +577,7 @@ function desenharPaginaTimes(p) {
 function abrirExclusaoPelada(id, dataTxt) {
   abrirSheet('Excluir pelada', `
     <div class="banner" style="margin-bottom:12px"><h3>${ic('alert', 20)} Isso não pode ser desfeito</h3>
-      <div class="muted small">A pelada de <b>${dataTxt}</b> será apagada com todas as partidas, gols e estatísticas. O overall dos jogadores é recalculado sem ela.</div></div>
+      <div class="muted small">A pelada de <b>${dataTxt}</b> será apagada com todas as partidas, gols e estatísticas. Vitórias, gols, assistências e overall de todos são refeitos como se ela nunca tivesse existido.</div></div>
     <label class="field"><span>Sua senha (para confirmar)</span><input type="password" id="ex-senha" autocomplete="current-password"></label>
     <button class="btn danger block lg" id="ex-btn" onclick="confirmarExclusaoPelada(${id})">${ic('trash')} Excluir definitivamente</button>`);
   setTimeout(() => { const n = document.getElementById('ex-senha'); if (n) n.focus(); }, 60);

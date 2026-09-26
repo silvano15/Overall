@@ -674,4 +674,48 @@ class FluxoDaPeladaTest {
         chamar(post("/peladas/" + peladaId + "/exclusao"), Map.of("senha", "novaSenha123"), 404);
     }
 
+
+    /** Roda uma pelada curta e completa (1 partida, 1 gol) no grupo e a finaliza; devolve o id. */
+    long peladaCompleta(long grupo, List<Long> jogadores) throws Exception {
+        long pel = chamar(post("/peladas?grupoId=" + grupo),
+                Map.of("dataJogo", LocalDate.now(relogio).toString(), "horaJogo", "14:00"), 201).get("id").asLong();
+        for (long id : jogadores) ok(put("/peladas/" + pel + "/lista/" + id));
+        JsonNode s = ok(post("/peladas/" + pel + "/sorteio"), Map.of("jogadoresPorTime", 2));
+        long a = s.get("times").get(0).get("id").asLong(), b = s.get("times").get(1).get("id").asLong();
+        long autor = ids(s.get("times"), 0).get(0);
+        long partida = chamar(post("/peladas/" + pel + "/partidas"), config(a, b, 5, 1), 201).get("id").asLong();
+        ok(post("/partidas/" + partida + "/iniciar"));
+        ok(post("/partidas/" + partida + "/gols"), gol(a, autor, null));
+        chamar(post("/peladas/" + pel + "/finalizar"), null, 200);
+        return pel;
+    }
+
+    @Test @Order(21)
+    void excluirPeladaRefazOHistoricoDeOverallDasSeguintes() throws Exception {
+        long grupo = chamar(post("/grupos"), Map.of("nome", "Historico"), 201).get("id").asLong();
+        List<Long> quatro = new ArrayList<>();
+        for (int i = 1; i <= 4; i++)
+            quatro.add(chamar(post("/jogadores?grupoId=" + grupo), Map.of("nome", "H" + i), 201).get("id").asLong());
+
+        long primeira = peladaCompleta(grupo, quatro);
+        long segunda = peladaCompleta(grupo, quatro);
+        // a segunda pelada partiu do overall que a primeira deixou (não do inicial)
+        boolean partiuDaPrimeira = false;
+        for (JsonNode d : ok(get("/peladas/" + segunda + "/resumo")).get("jogadores"))
+            if (d.get("overallAntes").asInt() != 60) partiuDaPrimeira = true;
+        assertTrue(partiuDaPrimeira, "a 2ª pelada precisa herdar o overall da 1ª");
+
+        chamar(post("/peladas/" + primeira + "/exclusao"), Map.of("senha", "novaSenha123"), 204);
+
+        // sem a 1ª, a 2ª vira a primeira do histórico: todos partem de 60 e o overall atual é o "depois" dela
+        Map<Long, Integer> atual = new java.util.HashMap<>();
+        for (JsonNode j : ok(get("/jogadores?grupoId=" + grupo))) atual.put(j.get("id").asLong(), j.get("overall").asInt());
+        for (JsonNode d : ok(get("/peladas/" + segunda + "/resumo")).get("jogadores")) {
+            assertEquals(60, d.get("overallAntes").asInt(), d.toString());
+            assertEquals(atual.get(d.get("jogadorId").asLong()).intValue(), d.get("overallDepois").asInt(), d.toString());
+        }
+        chamar(get("/peladas/" + primeira + "/resumo"), null, 404);
+        assertEquals(1, ok(get("/rankings?grupoId=" + grupo + "&periodo=GERAL")).get("peladas").asInt());
+    }
+
 }
