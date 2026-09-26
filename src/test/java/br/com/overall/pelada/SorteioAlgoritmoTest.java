@@ -15,10 +15,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SorteioAlgoritmoTest {
 
-    private static List<Candidato> jogadores(int[] overalls, Set<Integer> indicesGoleiros) {
+    private static List<Candidato> jogadores(int[] overalls) {
         List<Candidato> lista = new ArrayList<>();
-        for (int i = 0; i < overalls.length; i++)
-            lista.add(new Candidato((long) i, overalls[i], indicesGoleiros.contains(i)));
+        for (int i = 0; i < overalls.length; i++) lista.add(new Candidato((long) i, overalls[i]));
         return lista;
     }
 
@@ -38,7 +37,7 @@ class SorteioAlgoritmoTest {
 
     @Test
     void todosOsJogadoresAparecemUmaVezEOsTimesCheiosVemPrimeiro() {
-        List<Candidato> todos = jogadores(new int[]{60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60}, Set.of());
+        List<Candidato> todos = jogadores(new int[]{60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60});
         List<List<Long>> times = SorteioAlgoritmo.sortear(todos, 5, false, new Random(1));
 
         assertEquals(3, times.size());
@@ -51,20 +50,9 @@ class SorteioAlgoritmoTest {
     }
 
     @Test
-    void goleirosSaoSeparadosEntreOsTimes() {
-        for (long seed = 0; seed < 50; seed++) {
-            List<Candidato> todos = jogadores(new int[]{60, 60, 60, 60, 60, 60, 60, 60}, Set.of(0, 1));
-            List<List<Long>> times = SorteioAlgoritmo.sortear(todos, 4, seed % 2 == 0, new Random(seed));
-            long comGoleiro = times.stream().filter(t -> t.contains(0L) || t.contains(1L)).count();
-            assertEquals(2, comGoleiro, "seed " + seed + " deixou os dois goleiros juntos");
-            assertTrue(!(times.get(0).contains(0L) && times.get(0).contains(1L)));
-        }
-    }
-
-    @Test
     void modoBalanceadoAproximaAsMediasDosTimes() {
         int[] overalls = {90, 85, 80, 75, 70, 65, 62, 60, 55, 50, 48, 45};
-        List<Candidato> todos = jogadores(overalls, Set.of());
+        List<Candidato> todos = jogadores(overalls);
         double somaBalanceado = 0, somaAleatorio = 0;
         int rodadas = 40;
         for (int seed = 0; seed < rodadas; seed++) {
@@ -81,7 +69,7 @@ class SorteioAlgoritmoTest {
     @Test
     void modoBalanceadoNaoRepeteSempreOsMesmosTimes() {
         int[] overalls = {80, 75, 70, 65, 60, 55, 50, 45};
-        List<Candidato> todos = jogadores(overalls, Set.of());
+        List<Candidato> todos = jogadores(overalls);
         Set<Set<Long>> primeirosTimes = new HashSet<>();
         for (int seed = 0; seed < 30; seed++) {
             primeirosTimes.add(new HashSet<>(SorteioAlgoritmo.sortear(todos, 4, true, new Random(seed)).get(0)));
@@ -90,17 +78,8 @@ class SorteioAlgoritmoTest {
     }
 
     @Test
-    void goleiroFicaEmTimesDiferentesTambemNoModoBalanceado() {
-        List<Candidato> todos = jogadores(new int[]{99, 40, 80, 70, 60, 50, 90, 30, 55, 45}, Set.of(0, 6));
-        for (int seed = 0; seed < 30; seed++) {
-            List<List<Long>> times = SorteioAlgoritmo.sortear(todos, 5, true, new Random(seed));
-            assertTrue(times.get(0).contains(0L) ^ times.get(0).contains(6L));
-        }
-    }
-
-    @Test
     void precisaDeAoMenosDoisTimes() {
-        List<Candidato> todos = jogadores(new int[]{60, 60, 60}, Set.of());
+        List<Candidato> todos = jogadores(new int[]{60, 60, 60});
         assertThrows(IllegalArgumentException.class, () -> SorteioAlgoritmo.sortear(todos, 5, false, new Random()));
     }
 }

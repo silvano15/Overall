@@ -1,10 +1,13 @@
 // ---------- Aba Pelada: lista, sorteio, times (cards/campo), partidas e resumo ----------
 
-const PEL = { p: null, buscaPicker: '', vista: 'cards', timeCampo: null, par: [], tam: null, dur: null, gols: null };
+const PEL = { verElenco: false, grupo: null, rk: null, p: null, buscaPicker: '', vista: 'cards', timeCampo: null, par: [], tam: null, dur: null, gols: null };
 
-async function telaPelada(view) {
+async function telaPelada(view, pagina) {
+  PEL.pagina = pagina || 'principal';
   await carregarJogadores();
-  PEL.p = await GET('/peladas/atual');
+  [PEL.grupo, PEL.rk] = await Promise.all([GET(`/grupos/${GID}`),
+    GET(`/rankings?grupoId=${GID}&periodo=GERAL`).catch(() => null)]);
+  PEL.p = await GET(`/peladas/atual?grupoId=${GID}`);
   if (!PEL.p) return desenharSemPelada();
   PEL.par = [];
   desenharPelada();
@@ -13,8 +16,9 @@ async function telaPelada(view) {
 // ---------- sem pelada em aberto ----------
 
 async function desenharSemPelada() {
-  const historico = (await GET('/peladas')).filter(p => p.status === 'FINALIZADA');
+  const historico = (await GET(`/peladas?grupoId=${GID}`)).filter(p => p.status === 'FINALIZADA');
   pintar(`
+    ${cabecalhoGrupo()}
     <div class="card hero">
       <div class="empty" style="padding-top:8px">${arteVazia()}
         <h2 class="h2">Nenhuma pelada marcada</h2>
@@ -25,12 +29,39 @@ async function desenharSemPelada() {
       </div>
       <button class="btn primary block lg" onclick="criarPelada()">${ic('plus')} Criar pelada</button>
     </div>
+    ${blocoRankingResumo()}
     ${historico.length ? `<div class="card"><div class="card-head"><h2 class="h3">Peladas anteriores</h2><span class="chip gray">${historico.length}</span></div>
       ${historico.slice(0, 15).map(h => `
-        <a class="p-row" href="#/resumo/${h.id}" style="text-decoration:none">
+        <a class="p-row" href="#/grupos/${GID}/resumo/${h.id}" style="text-decoration:none">
           <span class="chip gray">${ic('calendar', 14)}</span>
           <span class="p-name">${esc(fmtDataLonga(h.dataJogo))}<span class="p-sub">${h.jogadores} jogadores · ${h.partidas} partidas</span></span>
-          <span class="muted">${ic('chevR')}</span></a>`).join('')}</div>` : ''}`);
+          <span class="muted">${ic('chevR')}</span></a>`).join('')}
+      ${historico.length > 15 ? `<a class="btn sm ghost block mt-2" href="#/grupos/${GID}/peladas">Ver todas (${historico.length})</a>` : ''}</div>` : ''}`);
+}
+
+// ---------- biblioteca: todas as peladas já criadas (ativa + histórico) ----------
+
+async function telaBibliotecaPeladas() {
+  const todas = await GET(`/peladas?grupoId=${GID}`);
+  const ordenadas = todas.slice().sort((a, b) => {
+    const ativaA = a.status !== 'FINALIZADA', ativaB = b.status !== 'FINALIZADA';
+    if (ativaA !== ativaB) return ativaA ? -1 : 1;
+    return b.dataJogo.localeCompare(a.dataJogo) || b.id - a.id;
+  });
+  pintar(`
+    <a href="#/grupos/${GID}" class="btn sm ghost" style="margin-bottom:10px">${ic('left', 16)} Pelada</a>
+    <div style="margin:2px 2px 14px"><div class="eyebrow">Biblioteca</div><h1 class="h1 mt-2">Todas as peladas</h1></div>
+    ${ordenadas.length ? `<div class="card">
+      ${ordenadas.map(p => {
+        const ativa = p.status !== 'FINALIZADA';
+        const destino = ativa ? `#/grupos/${GID}` : `#/grupos/${GID}/resumo/${p.id}`;
+        return `<a class="p-row" href="${destino}" style="text-decoration:none">
+          <span class="chip ${ativa ? '' : 'gray'}">${ativa ? '<span class="dot"></span>' : ic('calendar', 14)}</span>
+          <span class="p-name">${esc(fmtDataLonga(p.dataJogo))}
+            <span class="p-sub">${STATUS_PELADA[p.status]} · ${p.jogadores} jogadores · ${p.partidas} partida${p.partidas === 1 ? '' : 's'}</span></span>
+          <span class="muted">${ic('chevR')}</span></a>`;
+      }).join('')}
+    </div>` : `<div class="card"><div class="empty">${arteVazia()}Nenhuma pelada criada ainda.</div></div>`}`);
 }
 
 async function criarPelada() {
@@ -38,7 +69,7 @@ async function criarPelada() {
   const horaJogo = document.getElementById('nova-hora').value;
   if (!dataJogo || !horaJogo) return toast('Informe data e horário.', 'error');
   try {
-    await POST('/peladas', { dataJogo, horaJogo });
+    await POST(`/peladas?grupoId=${GID}`, { dataJogo, horaJogo });
     toast('Pelada criada! Agora monte a lista.');
     document.getElementById('view').dataset.entrada = '1';
     telaPelada();
@@ -51,21 +82,61 @@ function desenharPelada() {
   const p = PEL.p;
   const aberta = p.status === 'ABERTA', sorteada = p.status === 'SORTEADA' || p.status === 'EM_ANDAMENTO';
   const temPartidas = p.partidas.length > 0;
+  const banner = p.partidaEmAbertoId ? `
+      <a class="banner" href="#/grupos/${GID}/partida/${p.partidaEmAbertoId}" style="display:block;text-decoration:none">
+        <div class="row"><span class="chip"><span class="dot"></span> Ao vivo</span><div class="grow"><h3>Partida em andamento</h3>
+        <div class="muted small">Toque para voltar ao placar e ao cronômetro.</div></div>${ic('chevR')}</div></a>` : '';
+
+  if (PEL.pagina === 'times') {
+    if (p.status !== 'SORTEADA' || peladaIniciada(p)) { location.hash = `#/grupos/${GID}`; return; }
+    return desenharPaginaTimes(p);
+  }
+
+  // Pelada iniciada: tela enxuta só com o que se usa entre uma partida e outra.
+  if (peladaIniciada(p)) {
+    pintar(`
+      ${banner}
+      <div class="card tight row between">
+        <div><div class="eyebrow">${esc(PEL.grupo ? PEL.grupo.nome : 'Grupo')}</div>
+          <div class="h3 mt-2">${esc(fmtDataLonga(p.dataJogo))}</div></div>
+        <div class="row gap-2"><span class="chip ${p.status === 'EM_ANDAMENTO' ? '' : 'gray'}">${p.status === 'EM_ANDAMENTO' ? '<span class="dot"></span>' : ''}${STATUS_PELADA[p.status]}</span>
+          <button class="btn sm" onclick="PEL.verElenco=!PEL.verElenco; desenharPelada()">${ic('users', 16)} ${PEL.verElenco ? 'Ocultar' : 'Times'}</button></div>
+      </div>
+      ${PEL.verElenco ? blocoTimes(p) : ''}
+      ${!p.partidaEmAbertoId ? blocoNovaPartida(p) : ''}
+      ${temPartidas ? blocoPartidas(p) : ''}
+      ${!temPartidas ? `<button class="btn block" onclick="voltarAosTimes()">${ic('left', 16)} Voltar à lista e aos times</button>` : ''}
+      ${p.status === 'EM_ANDAMENTO' && !p.partidaEmAbertoId
+        ? `<button class="btn primary block lg" onclick="finalizarPelada()">${ic('flag')} Finalizar pelada</button>` : ''}`);
+    return;
+  }
 
   pintar(`
-    ${p.partidaEmAbertoId ? `
-      <a class="banner" href="#/partida/${p.partidaEmAbertoId}" style="display:block;text-decoration:none">
-        <div class="row"><span class="chip"><span class="dot"></span> Ao vivo</span><div class="grow"><h3>Partida em andamento</h3>
-        <div class="muted small">Toque para voltar ao placar e ao cronômetro.</div></div>${ic('chevR')}</div></a>` : ''}
+    ${cabecalhoGrupo()}
+    ${banner}
     ${blocoHero(p, temPartidas)}
     ${blocoLista(p)}
     ${aberta || p.status === 'SORTEADA' ? blocoSorteio(p) : ''}
-    ${sorteada ? blocoTimes(p) : ''}
-    ${sorteada && !p.partidaEmAbertoId ? blocoNovaPartida(p) : ''}
-    ${temPartidas ? blocoPartidas(p) : ''}
-    ${p.status === 'EM_ANDAMENTO' && !p.partidaEmAbertoId
-      ? `<button class="btn primary block lg" onclick="finalizarPelada()">${ic('flag')} Finalizar pelada</button>` : ''}`);
+    ${p.status === 'SORTEADA' ? blocoTimesResumo(p) : ''}
+    ${blocoRankingResumo()}`);
   if (document.getElementById('previa-sorteio')) atualizarPrevia();
+}
+
+/** "Iniciada" = já tem partida, ou o ADM tocou em Iniciar pelada (lembrado neste aparelho). */
+function peladaIniciada(p) {
+  if (p.status === 'EM_ANDAMENTO') return true;
+  if (p.status !== 'SORTEADA') return false;
+  try { return localStorage.getItem('overall_ini_' + p.id) === '1'; } catch (e) { return false; }
+}
+function marcarIniciada(id, sim) {
+  try { sim ? localStorage.setItem('overall_ini_' + id, '1') : localStorage.removeItem('overall_ini_' + id); } catch (e) { /* ignora */ }
+}
+function iniciarPelada() {
+  marcarIniciada(PEL.p.id, true); PEL.verElenco = false; PEL.par = [];
+  vibrar(12); location.hash = `#/grupos/${GID}`;
+}
+function voltarAosTimes() {
+  marcarIniciada(PEL.p.id, false); location.hash = `#/grupos/${GID}/times`;
 }
 
 function blocoHero(p, temPartidas) {
@@ -74,7 +145,9 @@ function blocoHero(p, temPartidas) {
   const etapas = [['Lista', 'users'], ['Sorteio', 'dice'], ['Jogos', 'ball'], ['Final', 'flag']];
   return `<div class="card hero">
     <div class="row between"><span class="chip ${p.status === 'EM_ANDAMENTO' ? '' : 'gray'}">${p.status === 'EM_ANDAMENTO' ? '<span class="dot"></span>' : ''}${STATUS_PELADA[p.status]}</span>
-      <div class="row gap-2">${!temPartidas ? `<button class="btn icon sm" aria-label="Alterar data" onclick="editarPelada()">${ic('edit')}</button>
+      <div class="row gap-2">
+        <a class="btn icon sm" aria-label="Biblioteca de peladas" href="#/grupos/${GID}/peladas">${ic('grid')}</a>
+        ${!temPartidas ? `<button class="btn icon sm" aria-label="Alterar data" onclick="editarPelada()">${ic('edit')}</button>
         <button class="btn icon sm danger" aria-label="Excluir pelada" onclick="excluirPelada()">${ic('trash')}</button>` : ''}</div></div>
     <div class="eyebrow mt-4">Próxima pelada</div>
     <div class="hero-date mt-2">${esc(fmtDataLonga(p.dataJogo))}</div>
@@ -85,23 +158,37 @@ function blocoHero(p, temPartidas) {
     </div></div>`;
 }
 
+/** Cartão compacto: a lista completa só aparece no modal "Mostrar lista" (mantém a página limpa). */
 function blocoLista(p) {
-  const noTime = new Set();
-  p.times.forEach(t => t.jogadores.forEach(j => noTime.add(j.jogadorId)));
+  const n = p.lista.length;
   return `<div class="card">
-    <div class="card-head">
+    <div class="row between">
       <div class="row"><span class="avatar-stack">${p.lista.slice(0, 4).map(id => avatar(J(id), 'sm')).join('')}</span>
-        <div><h2 class="h3">Lista da semana</h2><div class="small muted">${p.lista.length} jogador${p.lista.length === 1 ? '' : 'es'}</div></div></div>
-      <button class="btn sm primary" onclick="abrirPickerLista()">${ic('plus', 16)} Adicionar</button>
+        <div><h2 class="h3">Lista da semana</h2><div class="small muted">${n} jogador${n === 1 ? '' : 'es'}</div></div></div>
+      <button class="btn sm" onclick="abrirLista()">${ic('users', 16)} Mostrar lista</button>
     </div>
+  </div>`;
+}
+
+function corpoLista() {
+  const p = PEL.p, noTime = new Set();
+  p.times.forEach(t => t.jogadores.forEach(j => noTime.add(j.jogadorId)));
+  const goleiros = p.lista.filter(id => J(id).goleiro).length;
+  return `<div class="small muted" style="margin-bottom:8px">${p.lista.length} jogador${p.lista.length === 1 ? '' : 'es'}${goleiros ? ` · ${goleiros} goleiro${goleiros === 1 ? '' : 's'}` : ''}</div>
     ${p.lista.length ? p.lista.map(id => { const j = J(id); return `
       <div class="p-row">${avatar(j, 'sm')}
         <span class="p-name">${esc(j.nome)}${j.goleiro ? ` <span class="faint">${ic('glove', 14)}</span>` : ''}</span>
         ${ovr(j.overall)}
         ${noTime.has(id) ? '' : `<button class="btn icon sm ghost" aria-label="Tirar da lista" onclick="tirarDaLista(${id})">${ic('x', 16)}</button>`}
       </div>`; }).join('')
-      : `<div class="empty" style="padding:14px">Ninguém na lista ainda.<br>Toque em <b>Adicionar</b>.</div>`}
-  </div>`;
+      : `<div class="empty" style="padding:14px">Ninguém na lista ainda.</div>`}
+    <button class="btn primary block mt-4" onclick="abrirPickerLista()">${ic('plus', 16)} Adicionar jogadores</button>`;
+}
+
+function abrirLista() { abrirSheet('Lista da semana', corpoLista()); }
+
+function listaModalAberta() {
+  return !document.getElementById('sheet-overlay').hidden && document.getElementById('sheet-title').textContent === 'Lista da semana';
 }
 
 function abrirPickerLista() {
@@ -109,7 +196,8 @@ function abrirPickerLista() {
   abrirSheet('Adicionar à lista', `
     <div style="position:relative;margin-bottom:10px"><span style="position:absolute;left:14px;top:15px;color:var(--text-3)">${ic('search')}</span>
     <input class="input" style="padding-left:44px" placeholder="Buscar jogador" oninput="PEL.buscaPicker=this.value; desenharPicker()"></div>
-    <div id="picker-lista"></div>`);
+    <div id="picker-lista"></div>
+    <button class="btn block mt-4" onclick="abrirLista()">${ic('check', 16)} Concluído</button>`);
   desenharPicker();
 }
 
@@ -136,7 +224,10 @@ async function alternarNoPicker(id) {
 }
 
 async function tirarDaLista(id) {
-  try { PEL.p = await DEL(`/peladas/${PEL.p.id}/lista/${id}`); desenharPelada(); } catch (e) { erroToast(e); }
+  try {
+    PEL.p = await DEL(`/peladas/${PEL.p.id}/lista/${id}`); desenharPelada();
+    if (listaModalAberta()) document.getElementById('sheet-body').innerHTML = corpoLista();
+  } catch (e) { erroToast(e); }
 }
 
 // ---------- sorteio: caixa morfológica + prévia em pontos (proximidade e similaridade) ----------
@@ -146,10 +237,10 @@ function blocoSorteio(p) {
   PEL.tam = PEL.tam || p.jogadoresPorTime || 5;
   return `<div class="card">
     <div class="card-head"><div><h2 class="h3">${refazendo ? 'Sortear novamente' : 'Sortear times'}</h2>
-      <div class="small muted mt-2">Aleatório no começo; com histórico, balanceado por overall.</div></div>
+      <div class="small muted mt-2">Aleatório no começo; com histórico, balanceado por overall. Goleiros não entram no sorteio — quem vai para o gol é escolhido na partida.</div></div>
       <span class="chip gray">${ic('dice', 14)}</span></div>
     ${caixa('sorteio', {
-      linhas: [{ k: 'tam', rotulo: 'Por time', dica: 'jogadores', v: PEL.tam, custom: { min: 1, max: 20 }, fmt: v => `${v} por time`,
+      linhas: [{ k: 'tam', rotulo: 'Por time', dica: 'jogadores de linha', v: PEL.tam, custom: { min: 1, max: 20 }, fmt: v => `${v} por time`,
         opcoes: [3, 4, 5, 6, 7, 8].map(v => ({ v, r: v })) }],
       aoMudar: (s) => { PEL.tam = s.tam; atualizarPrevia(); }
     })}
@@ -162,8 +253,8 @@ function blocoSorteio(p) {
 function atualizarPrevia() {
   const el = document.getElementById('previa-sorteio');
   if (!el) return;
-  const n = PEL.p.lista.length, tam = PEL.tam;
-  if (n < 2) { el.innerHTML = '<div class="dots-cap">Adicione jogadores à lista para ver a divisão.</div>'; return; }
+  const n = PEL.p.lista.filter(id => !J(id).goleiro).length, tam = PEL.tam;
+  if (n < 2) { el.innerHTML = '<div class="dots-cap">Adicione jogadores de linha à lista para ver a divisão.</div>'; return; }
   const times = Math.ceil(n / tam), resto = n % tam;
   if (times < 2) { el.innerHTML = '<div class="dots-cap">Com esse tamanho só sai 1 time. Reduza os jogadores por time.</div>'; return; }
   let k = 0;
@@ -183,7 +274,8 @@ async function sortear() {
       toast(PEL.p.modoSorteio === 'OVERALL' ? 'Times balanceados pelo overall!' : 'Times sorteados!');
       vibrar([20, 30, 20]);
       desenharPelada();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      const alvo = document.getElementById('card-times');
+      if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) { erroToast(e); }
   };
   if (PEL.p.status === 'SORTEADA') confirmar('Sortear novamente?', 'Os times atuais serão substituídos por um novo sorteio.', 'Sortear', executar, false);
@@ -310,7 +402,7 @@ async function criarPartida() {
   try {
     const partida = await POST(`/peladas/${PEL.p.id}/partidas`, { timeAId: PEL.par[0], timeBId: PEL.par[1], duracaoMinutos: s.dur, golsParaEncerrar: s.gols });
     PEL.par = [];
-    location.hash = `#/partida/${partida.id}`;
+    location.hash = `#/grupos/${GID}/partida/${partida.id}`;
   } catch (e) { erroToast(e); }
 }
 
@@ -322,7 +414,7 @@ function blocoPartidas(p) {
     ${p.partidas.map(m => {
       const pen = m.status === 'ENCERRADA' && m.vencedorPenaltisId
         ? `<div class="m-note">${nomeDoTime(m.vencedorPenaltisId === m.timeAId ? m.timeANumero : m.timeBNumero)} nos pênaltis</div>` : '';
-      return `<a class="match" href="#/partida/${m.id}">
+      return `<a class="match" href="#/grupos/${GID}/partida/${m.id}">
         <div class="m-side">${escudo(m.timeANumero, 36)}<span class="small muted">${nomeDoTime(m.timeANumero)}</span></div>
         <div><div class="m-score">${m.golsA} <span class="faint">×</span> ${m.golsB}</div>${pen}
           ${m.status !== 'ENCERRADA' ? `<div class="m-note" style="color:var(--brand)">${rotulo[m.status]}</div>` : ''}</div>
@@ -360,7 +452,7 @@ function finalizarPelada() {
       try {
         await POST(`/peladas/${PEL.p.id}/finalizar`);
         await carregarJogadores();
-        location.hash = `#/resumo/${PEL.p.id}`;
+        location.hash = `#/grupos/${GID}/resumo/${PEL.p.id}`;
       } catch (e) { erroToast(e); }
     }, false);
 }
@@ -388,7 +480,7 @@ async function telaResumo(view, id) {
   };
 
   pintar(`
-    <a href="#/pelada" class="btn sm ghost" style="margin-bottom:10px">${ic('left', 16)} Pelada</a>
+    <a href="#/grupos/${GID}" class="btn sm ghost" style="margin-bottom:10px">${ic('left', 16)} Pelada</a>
     <div class="card hero">
       <span class="chip ${finalizada ? 'gold' : 'gray'}">${ic('flag', 14)} ${finalizada ? 'Pelada finalizada' : 'Em andamento'}</span>
       <div class="hero-date mt-3">${esc(fmtDataLonga(r.dataJogo))}</div>
@@ -416,10 +508,65 @@ async function telaResumo(view, id) {
           <div class="center"><div class="rank-val" style="line-height:1">${nota1(d.nota)}</div><div class="eyebrow" style="margin-top:3px">nota</div></div>
           ${finalizada && d.overallDepois != null ? `<div class="center" style="min-width:58px">${ovr(d.overallDepois)}<div style="margin-top:3px">${delta(d)}</div></div>` : ''}
         </div>`; }).join('') : '<div class="empty">Sem dados.</div>'}</div>
-    <a class="btn primary block lg" href="#/pelada">Voltar</a>`);
+    <a class="btn primary block lg" href="#/grupos/${GID}">Voltar</a>`);
 
   if (finalizada && mvp && window.__confeteResumo !== id) {
     window.__confeteResumo = id;
     setTimeout(() => confete(innerWidth / 2, innerHeight * .35, null, 140), 500);
   }
+}
+
+// ---------- início do grupo: cabeçalho e resumo do ranking ----------
+
+function cabecalhoGrupo() {
+  const nome = PEL.grupo ? PEL.grupo.nome : 'Grupo';
+  return `<div class="row between" style="margin:2px 2px 14px">
+    <div><div class="eyebrow">Grupo</div><h1 class="h1 mt-2">${esc(nome)}</h1></div>
+    <a class="btn sm" href="#/grupos">${ic('grid', 16)} Trocar</a></div>`;
+}
+
+/** Ranking do grupo (todas as peladas): quem lidera em overall, gols e assistências. Atualiza a cada pelada finalizada. */
+function blocoRankingResumo() {
+  const rk = PEL.rk;
+  if (!rk) return '';
+  const secoes = [['Maiores overalls', 'trend', rk.overalls, v => ovr(Math.round(v))],
+    ['Artilheiros', 'ball', rk.goleadores, v => `<span class="rank-val">${Math.round(v)}</span>`],
+    ['Assistências', 'target', rk.assistentes, v => `<span class="rank-val">${Math.round(v)}</span>`],
+    ['Goleiros (sem sofrer)', 'glove', rk.goleiros, v => `<span class="rank-val">${Math.round(v)}</span>`]];
+  const vazio = secoes.every(s => !s[2].length);
+  return `<div class="card"><div class="card-head"><h2 class="h3">${ic('trophy')} Ranking do grupo</h2>
+      <a class="btn sm ghost" href="#/grupos/${GID}/rankings">Ver tudo ${ic('chevR', 14)}</a></div>
+    ${vazio ? `<div class="empty" style="padding:12px">O ranking aparece depois da primeira pelada finalizada.</div>`
+      : secoes.filter(s => s[2].length).map(([titulo, icone, itens, fmt]) => `
+        <div class="eyebrow mt-3">${ic(icone, 14)} ${titulo}</div>
+        ${itens.slice(0, 3).map((i, k) => `<div class="rank-row"><span class="rank-pos" style="${k === 0 ? 'color:var(--gold)' : ''}">${k + 1}</span>
+          ${avatar(J(i.jogadorId), 'sm')}<div class="grow"><div class="p-name">${esc(i.nome)}</div></div>${fmt(i.valor)}</div>`).join('')}`).join('')}
+  </div>`;
+}
+
+// ---------- página dos times: resumo na pelada + tela própria com "Iniciar pelada" no fim ----------
+
+/** Cartão compacto na página da pelada: mostra que o sorteio saiu e leva para os times. */
+function blocoTimesResumo(p) {
+  const jogando = p.times.reduce((s, t) => s + t.jogadores.length, 0);
+  return `<a class="card" id="card-times" href="#/grupos/${GID}/times" style="display:block;text-decoration:none;color:inherit">
+    <div class="row between"><div><div class="eyebrow">${p.modoSorteio === 'OVERALL' ? 'Balanceado por overall' : 'Sorteio aleatório'}</div>
+      <h2 class="h2 mt-2">Times sorteados</h2>
+      <div class="small muted mt-2">${p.times.length} times · ${jogando} jogadores de linha</div></div>
+      <span class="muted">${ic('chevR')}</span></div>
+    <div class="row gap-2 mt-3 wrap">${p.times.map(t => `<span class="chip gray">${escudo(t.numero, 18)} ${nomeDoTime(t.numero)} · ${Math.round(t.overallMedio)}</span>`).join('')}</div>
+  </a>`;
+}
+
+function desenharPaginaTimes(p) {
+  const goleiros = p.lista.filter(id => J(id).goleiro);
+  pintar(`
+    <a href="#/grupos/${GID}" class="btn sm ghost" style="margin-bottom:10px">${ic('left', 16)} Lista e sorteio</a>
+    ${blocoTimes(p)}
+    <div class="card mt-4"><div class="card-head"><h2 class="h3">${ic('glove')} Goleiros</h2><span class="chip gray">${goleiros.length}</span></div>
+      ${goleiros.length ? goleiros.map(id => `<div class="p-row">${avatar(J(id), 'sm')}<span class="p-name">${esc(J(id).nome)}</span>${ovr(J(id).overall)}</div>`).join('')
+        : '<div class="small muted">Ninguém marcado como goleiro na lista.</div>'}
+      <div class="small muted mt-3">Goleiros ficam fora dos times: antes de cada partida você escolhe quem vai para o gol de cada lado (qualquer jogador da lista pode agarrar).</div></div>
+    <div class="card tight small muted">${ic('info', 14)} Não gostou da divisão? Volte, e toque em <b>Sortear de novo</b>. Depois de iniciar a pelada, os times ficam fixos.</div>
+    <button class="btn primary block lg" onclick="iniciarPelada()">${ic('play')} Iniciar pelada</button>`);
 }

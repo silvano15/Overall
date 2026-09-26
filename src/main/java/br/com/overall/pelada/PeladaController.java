@@ -34,8 +34,9 @@ public class PeladaController {
 
     @PostMapping
     @Operation(summary = "Cria a pelada (data e horário) e abre a lista da semana")
-    public ResponseEntity<PeladaResponse> criar(@Valid @RequestBody PeladaRequest req, UriComponentsBuilder uri) {
-        PeladaResponse criada = peladaService.criar(req);
+    public ResponseEntity<PeladaResponse> criar(@RequestParam Long grupoId, @Valid @RequestBody PeladaRequest req,
+                                                UriComponentsBuilder uri) {
+        PeladaResponse criada = peladaService.criar(grupoId, req);
         URI location = uri.path("/peladas/{id}").buildAndExpand(criada.id()).toUri();
         return ResponseEntity.created(location).body(criada);
     }
@@ -55,14 +56,14 @@ public class PeladaController {
 
     @GetMapping("/atual")
     @Operation(summary = "A pelada da vez (a não finalizada mais próxima); 204 se não houver")
-    public ResponseEntity<PeladaResponse> atual() {
-        return peladaService.atual().map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
+    public ResponseEntity<PeladaResponse> atual(@RequestParam Long grupoId) {
+        return peladaService.atual(grupoId).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @GetMapping
     @Operation(summary = "Histórico de peladas")
-    public List<PeladaListaItem> historico() {
-        return peladaService.historico();
+    public List<PeladaListaItem> historico(@RequestParam Long grupoId) {
+        return peladaService.historico(grupoId);
     }
 
     @GetMapping("/{id}")

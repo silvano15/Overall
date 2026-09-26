@@ -14,6 +14,7 @@ import java.util.List;
  */
 public record PeladaResponse(
         Long id,
+        Long grupoId,
         LocalDate dataJogo,
         LocalTime horaJogo,
         PeladaStatus status,

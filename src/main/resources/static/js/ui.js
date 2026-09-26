@@ -114,10 +114,14 @@ function contagem(iso) {
   return d === 0 ? 'É hoje!' : d === 1 ? 'Amanhã' : d > 1 ? `Em ${d} dias` : 'Data passada';
 }
 
+// ---------- grupo atual: tudo (jogadores, peladas, rankings) é escopado por grupo ----------
+let GID = null;
+try { GID = Number(localStorage.getItem('overall_gid')) || null; } catch (e) { /* armazenamento bloqueado */ }
+
 // ---------- jogadores (cache) ----------
 let JOGADORES = new Map();
 async function carregarJogadores() {
-  const lista = await GET('/jogadores');
+  const lista = await GET(`/jogadores?grupoId=${GID}`);
   JOGADORES = new Map(lista.map(j => [j.id, j]));
   return lista;
 }

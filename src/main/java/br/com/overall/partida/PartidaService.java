@@ -117,18 +117,18 @@ public class PartidaService {
         return montar(partida);
     }
 
-    /** Escalação inicial = integrantes do time no sorteio; goleiro = o primeiro marcado como goleiro. */
+    /**
+     * Escalação inicial = integrantes do time no sorteio (só jogadores de linha; goleiros não entram
+     * no sorteio). Ninguém começa marcado como goleiro: o ADM escolhe quem vai para o gol de cada time
+     * antes de iniciar a partida, em {@link #definirGoleiro}.
+     */
     private void escalar(Partida partida, TimePelada time) {
         List<Long> ids = timePeladaJogadorRepository.findByTimeIdIn(List.of(time.getId())).stream()
                 .map(TimePeladaJogador::getJogadorId).toList();
         List<Jogador> jogadores = jogadorRepository.findAllById(ids).stream()
                 .sorted(Comparator.comparing(Jogador::getNome, String.CASE_INSENSITIVE_ORDER)).toList();
-        boolean goleiroDefinido = false;
-        for (Jogador j : jogadores) {
-            boolean goleiro = j.isGoleiro() && !goleiroDefinido;
-            goleiroDefinido |= goleiro;
-            partidaJogadorRepository.save(new PartidaJogador(partida.getId(), time.getId(), j.getId(), goleiro));
-        }
+        for (Jogador j : jogadores)
+            partidaJogadorRepository.save(new PartidaJogador(partida.getId(), time.getId(), j.getId(), false));
     }
 
     // ------------------------------------------------------------------ consulta
@@ -308,20 +308,38 @@ public class PartidaService {
         return montar(p);
     }
 
+    /**
+     * Define quem está no gol de um time. Qualquer jogador da lista da pelada pode agarrar — não precisa
+     * já estar escalado nesse time (nem em nenhum): se for de fora, ele "entra" só para o gol, sem que
+     * ninguém precise sair. O desempenho dele nessa partida conta no overall normalmente.
+     */
     @Transactional
     public PartidaResponse definirGoleiro(Long id, GoleiroRequest req) {
         Partida p = carregar(id);
         exigirAberta(p);
         exigirTimeDaPartida(p, req.timeId());
 
-        List<PartidaJogador> doTime = partidaJogadorRepository.findByPartidaId(id).stream()
-                .filter(j -> j.getTimeId().equals(req.timeId())).toList();
-        if (req.jogadorId() != null &&
-                doTime.stream().noneMatch(j -> j.getJogadorId().equals(req.jogadorId()) && j.isEmCampo()))
-            throw new RegraDeNegocioException("O goleiro precisa estar em campo neste time.");
-        for (PartidaJogador j : doTime) {
-            j.setGoleiro(j.isEmCampo() && j.getJogadorId().equals(req.jogadorId()));
+        List<PartidaJogador> todos = partidaJogadorRepository.findByPartidaId(id);
+        todos.stream().filter(j -> j.getTimeId().equals(req.timeId()) && j.isGoleiro()).forEach(j -> {
+            j.setGoleiro(false);
             partidaJogadorRepository.save(j);
+        });
+
+        if (req.jogadorId() == null) return montar(p);
+
+        PartidaJogador alvo = todos.stream()
+                .filter(j -> j.getJogadorId().equals(req.jogadorId())).findFirst().orElse(null);
+        if (alvo != null) {
+            if (alvo.isEmCampo() && !alvo.getTimeId().equals(req.timeId()))
+                throw new RegraDeNegocioException("Esse jogador já está em campo no outro time.");
+            alvo.setTimeId(req.timeId());
+            alvo.setEmCampo(true);
+            alvo.setGoleiro(true);
+            partidaJogadorRepository.save(alvo);
+        } else {
+            if (!peladaJogadorRepository.existsByPeladaIdAndJogadorId(p.getPeladaId(), req.jogadorId()))
+                throw new RegraDeNegocioException("Esse jogador precisa estar na lista da pelada.");
+            partidaJogadorRepository.save(new PartidaJogador(id, req.timeId(), req.jogadorId(), true));
         }
         return montar(p);
     }

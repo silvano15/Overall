@@ -15,7 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/jogadores")
-@Tag(name = "Jogadores", description = "Cadastro dos jogadores da pelada (nome e foto)")
+@Tag(name = "Jogadores", description = "Cadastro dos jogadores da pelada (nome e foto), por grupo")
 public class JogadorController {
 
     private final JogadorService jogadorService;
@@ -25,10 +25,11 @@ public class JogadorController {
     }
 
     @PostMapping
-    @Operation(summary = "Cadastra um jogador (nome e foto)")
-    public ResponseEntity<JogadorResponse> cadastrar(@Valid @RequestBody JogadorRequest request,
+    @Operation(summary = "Cadastra um jogador (nome e foto) no grupo informado")
+    public ResponseEntity<JogadorResponse> cadastrar(@RequestParam Long grupoId,
+                                                     @Valid @RequestBody JogadorRequest request,
                                                      UriComponentsBuilder uriBuilder) {
-        JogadorResponse criado = jogadorService.cadastrar(request);
+        JogadorResponse criado = jogadorService.cadastrar(grupoId, request);
         URI location = uriBuilder.path("/jogadores/{id}").buildAndExpand(criado.id()).toUri();
         return ResponseEntity.created(location).body(criado);
     }
@@ -53,9 +54,9 @@ public class JogadorController {
     }
 
     @GetMapping
-    @Operation(summary = "Lista todos os jogadores com overall e estatísticas")
-    public ResponseEntity<List<JogadorResponse>> listar() {
-        return ResponseEntity.ok(jogadorService.listar());
+    @Operation(summary = "Lista os jogadores de um grupo, com overall e estatísticas")
+    public ResponseEntity<List<JogadorResponse>> listar(@RequestParam Long grupoId) {
+        return ResponseEntity.ok(jogadorService.listar(grupoId));
     }
 
     @GetMapping("/{id}")

@@ -31,7 +31,7 @@ public interface PeladaJogadorRepository extends JpaRepository<PeladaJogador, Lo
     @Query("select pj.jogadorId, pj.overallAntes, pj.overallDepois "
             + "from PeladaJogador pj, Pelada p "
             + "where pj.peladaId = p.id and p.status = br.com.overall.pelada.PeladaStatus.FINALIZADA "
-            + "and p.dataJogo between :de and :ate and pj.overallDepois is not null "
+            + "and p.grupoId = :grupoId and p.dataJogo between :de and :ate and pj.overallDepois is not null "
             + "order by p.dataJogo asc, p.id asc")
-    List<Object[]> evolucaoDoOverall(@Param("de") LocalDate de, @Param("ate") LocalDate ate);
+    List<Object[]> evolucaoDoOverall(@Param("grupoId") Long grupoId, @Param("de") LocalDate de, @Param("ate") LocalDate ate);
 }

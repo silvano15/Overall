@@ -47,13 +47,15 @@ overall:
   # Fuso usado para decidir "hoje" (liberação do sorteio) e para o cronômetro.
   timezone: ${APP_TIMEZONE:America/Recife}
   jwt:
-    # IMPORTANTE: em produção, o 'secret' DEVE vir de variável de ambiente.
+    # IMPORTANTE: em produção, o 'secret' DEVE vir de variável de ambiente (JWT_SECRET).
+    # O valor abaixo do ":" é só um default de DESENVOLVIMENTO local, para não depender
+    # de configurar variável de ambiente do Windows/VS Code. NUNCA use esse default em produção.
     # A chave precisa ter no mínimo 256 bits (32 caracteres) para HS256.
-    secret: ${JWT_SECRET}
-  security:
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:8080,http://127.0.0.1:8080}
+    secret: ${JWT_SECRET:dev-apenas-local-troque-em-producao-yz8eBFZTTbtzONEz7t2TWRvu0sL77CBBm2K0Zi0}
     # O ADM usa pelo celular: 30 dias evita pedir senha toda semana.
     expiration-hours: ${JWT_EXPIRATION_HOURS:720}
+  security:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:8080,http://127.0.0.1:8080}
 
 # Swagger UI fica em:  http://localhost:8080/api/swagger-ui.html
 springdoc:

@@ -77,6 +77,7 @@ class FluxoDaPeladaTest {
 
     // estado compartilhado entre os passos
     String token;
+    long grupoId;
     long g1, g2, tardio;
     final List<Long> linha = new ArrayList<>();
     long peladaId;
@@ -100,7 +101,7 @@ class FluxoDaPeladaTest {
     JsonNode erro(MockHttpServletRequestBuilder b, Object corpo) throws Exception { return chamar(b, corpo, 400); }
 
     long criarJogador(String nome, boolean goleiro) throws Exception {
-        return chamar(post("/jogadores"), Map.of("nome", nome, "goleiro", goleiro, "foto", FOTO_PNG), 201).get("id").asLong();
+        return chamar(post("/jogadores?grupoId=" + grupoId), Map.of("nome", nome, "goleiro", goleiro, "foto", FOTO_PNG), 201).get("id").asLong();
     }
 
     List<Long> ids(JsonNode times, int indice) {
@@ -125,7 +126,7 @@ class FluxoDaPeladaTest {
     void semTokenNaoEntra() throws Exception {
         String antes = token;
         token = null;
-        mvc.perform(get("/jogadores")).andExpect(r -> assertTrue(
+        mvc.perform(get("/jogadores?grupoId=" + grupoId)).andExpect(r -> assertTrue(
                 r.getResponse().getStatus() == 401 || r.getResponse().getStatus() == 403));
         token = antes;
     }
@@ -138,20 +139,25 @@ class FluxoDaPeladaTest {
         JsonNode login = chamar(post("/auth/login"), Map.of("username", "admin", "senha", "admin123"), 200);
         token = login.get("token").asText();
         assertEquals("ADMIN", login.get("perfil").asText());
+
+        JsonNode grupo = chamar(post("/grupos"), Map.of("nome", "  Galera do Teste  "), 201);
+        grupoId = grupo.get("id").asLong();
+        assertEquals("Galera do Teste", grupo.get("nome").asText());
+        erro(post("/grupos"), Map.of("nome", " "));
     }
 
     @Test @Order(3)
     void cadastroDeJogadoresSoExigeNomeEFoto() throws Exception {
-        erro(post("/jogadores"), Map.of("nome", "  "));
-        erro(post("/jogadores"), Map.of("nome", "Fulano", "foto", "http://malicioso/x.png"));
-        erro(post("/jogadores"), Map.of("nome", "Fulano", "foto", "data:text/html;base64,PHNjcmlwdD4="));
+        erro(post("/jogadores?grupoId=" + grupoId), Map.of("nome", "  "));
+        erro(post("/jogadores?grupoId=" + grupoId), Map.of("nome", "Fulano", "foto", "http://malicioso/x.png"));
+        erro(post("/jogadores?grupoId=" + grupoId), Map.of("nome", "Fulano", "foto", "data:text/html;base64,PHNjcmlwdD4="));
 
         g1 = criarJogador("Goleiro Um", true);
         g2 = criarJogador("Goleiro Dois", true);
         for (int i = 1; i <= 6; i++) linha.add(criarJogador("Linha " + i, false));
-        tardio = chamar(post("/jogadores"), Map.of("nome", "Chegou Tarde"), 201).get("id").asLong();
+        tardio = chamar(post("/jogadores?grupoId=" + grupoId), Map.of("nome", "Chegou Tarde"), 201).get("id").asLong();
 
-        JsonNode lista = ok(get("/jogadores"));
+        JsonNode lista = ok(get("/jogadores?grupoId=" + grupoId));
         assertEquals(9, lista.size());
         JsonNode primeiro = lista.get(0);
         assertEquals(60, primeiro.get("overall").asInt(), "quem nunca jogou começa em 60");
@@ -169,15 +175,15 @@ class FluxoDaPeladaTest {
     @Test @Order(5)
     void criarPeladaValidaDataELimitaUmaEmAberto() throws Exception {
         LocalDate hoje = LocalDate.now(relogio);
-        erro(post("/peladas"), Map.of("dataJogo", hoje.minusDays(1).toString(), "horaJogo", "08:00"));
+        erro(post("/peladas?grupoId=" + grupoId), Map.of("dataJogo", hoje.minusDays(1).toString(), "horaJogo", "08:00"));
 
-        JsonNode criada = chamar(post("/peladas"), Map.of("dataJogo", hoje.plusDays(3).toString(), "horaJogo", "08:30"), 201);
+        JsonNode criada = chamar(post("/peladas?grupoId=" + grupoId), Map.of("dataJogo", hoje.plusDays(3).toString(), "horaJogo", "08:30"), 201);
         peladaId = criada.get("id").asLong();
         assertEquals("ABERTA", criada.get("status").asText());
         assertFalse(criada.get("sorteioLiberado").asBoolean(), "sorteio só no dia");
 
-        erro(post("/peladas"), Map.of("dataJogo", hoje.plusDays(4).toString(), "horaJogo", "08:00"));
-        assertEquals(peladaId, ok(get("/peladas/atual")).get("id").asLong());
+        erro(post("/peladas?grupoId=" + grupoId), Map.of("dataJogo", hoje.plusDays(4).toString(), "horaJogo", "08:00"));
+        assertEquals(peladaId, ok(get("/peladas/atual?grupoId=" + grupoId)).get("id").asLong());
     }
 
     @Test @Order(6)
@@ -200,25 +206,27 @@ class FluxoDaPeladaTest {
     }
 
     @Test @Order(7)
-    void sorteioAleatorioSeparaGoleirosEMarcaOModo() throws Exception {
-        JsonNode sorteada = ok(post("/peladas/" + peladaId + "/sorteio"), Map.of("jogadoresPorTime", 4));
+    void sorteioExcluiGoleirosEMarcaOModo() throws Exception {
+        // 6 jogadores de linha, 3 por time: os 2 goleiros ficam de fora do sorteio (não ocupam vaga em time algum).
+        JsonNode sorteada = ok(post("/peladas/" + peladaId + "/sorteio"), Map.of("jogadoresPorTime", 3));
         assertEquals("SORTEADA", sorteada.get("status").asText());
         assertEquals("ALEATORIO", sorteada.get("modoSorteio").asText(), "sem histórico o sorteio é aleatório");
         JsonNode times = sorteada.get("times");
         assertEquals(2, times.size());
-        assertEquals(4, times.get(0).get("jogadores").size());
-        assertEquals(4, times.get(1).get("jogadores").size());
+        assertEquals(3, times.get(0).get("jogadores").size());
+        assertEquals(3, times.get(1).get("jogadores").size());
 
         timeA = times.get(0).get("id").asLong();
         timeB = times.get(1).get("id").asLong();
         jogadoresA = ids(times, 0);
         jogadoresB = ids(times, 1);
-        assertTrue(jogadoresA.contains(g1) ^ jogadoresA.contains(g2), "os dois goleiros não podem cair no mesmo time");
+        assertFalse(jogadoresA.contains(g1) || jogadoresA.contains(g2)
+                || jogadoresB.contains(g1) || jogadoresB.contains(g2), "goleiros não entram em time nenhum");
         assertEquals(timeA, sorteada.get("proximaSugerida").get("timeAId").asLong());
         assertEquals(timeB, sorteada.get("proximaSugerida").get("timeBId").asLong());
 
         // re-sortear enquanto não começou é permitido e mantém 2 times
-        JsonNode denovo = ok(post("/peladas/" + peladaId + "/sorteio"), Map.of("jogadoresPorTime", 4));
+        JsonNode denovo = ok(post("/peladas/" + peladaId + "/sorteio"), Map.of("jogadoresPorTime", 3));
         assertEquals(2, denovo.get("times").size());
         timeA = denovo.get("times").get(0).get("id").asLong();
         timeB = denovo.get("times").get(1).get("id").asLong();
@@ -233,6 +241,20 @@ class FluxoDaPeladaTest {
         partida1 = p.get("id").asLong();
         assertEquals("AGUARDANDO", p.get("status").asText());
         erro(post("/peladas/" + peladaId + "/partidas"), config(timeA, timeB, 5, 2)); // já há uma em aberto
+
+        // antes de iniciar, o ADM escolhe o goleiro de cada time: g1/g2 não estão escalados em time
+        // nenhum (goleiros ficam de fora do sorteio), mas qualquer jogador da lista pode ir para o gol.
+        JsonNode comGoleiroA = ok(put("/partidas/" + partida1 + "/goleiro"), Map.of("timeId", timeA, "jogadorId", g1));
+        boolean g1NoGol = false;
+        for (JsonNode a : comGoleiroA.get("timeA").get("jogadores"))
+            if (a.get("jogadorId").asLong() == g1) g1NoGol = a.get("goleiro").asBoolean() && a.get("emCampo").asBoolean();
+        assertTrue(g1NoGol, "jogador de fora do time entra marcado como goleiro e em campo");
+
+        JsonNode comGoleiroB = ok(put("/partidas/" + partida1 + "/goleiro"), Map.of("timeId", timeB, "jogadorId", g2));
+        boolean g2NoGol = false;
+        for (JsonNode a : comGoleiroB.get("timeB").get("jogadores"))
+            if (a.get("jogadorId").asLong() == g2) g2NoGol = a.get("goleiro").asBoolean() && a.get("emCampo").asBoolean();
+        assertTrue(g2NoGol);
 
         // gol antes de iniciar não vale
         erro(post("/partidas/" + partida1 + "/gols"), gol(timeA, jogadoresA.get(0), null));
@@ -300,7 +322,7 @@ class FluxoDaPeladaTest {
         // quem saiu não pode fazer gol; quem entrou pode
         erro(post("/partidas/" + partida2 + "/gols"), gol(timeB, saiu, null));
 
-        ok(post("/partidas/" + partida2 + "/gols"), gol(timeA, jogadoresA.get(0), jogadoresA.get(3)));
+        ok(post("/partidas/" + partida2 + "/gols"), gol(timeA, jogadoresA.get(0), jogadoresA.get(2)));
         ok(post("/partidas/" + partida2 + "/gols"), gol(timeB, tardio, null));
 
         // desfazer e refazer um gol
@@ -329,14 +351,14 @@ class FluxoDaPeladaTest {
 
         // A✓ B✗ A✓ B✗ A✓ → ainda aberto (B pode empatar); B✗ → A venceu
         long[] cobradoresA = {jogadoresA.get(0), jogadoresA.get(1), jogadoresA.get(2)};
-        long[] cobradoresB = {jogadoresB.get(0), jogadoresB.get(1), jogadoresB.get(2)};
+        long[] cobradoresB = {jogadoresB.get(0), jogadoresB.get(1), tardio}; // tardio entrou no lugar de jogadoresB.get(2)
         for (int i = 0; i < 3; i++) {
             ok(post("/partidas/" + partida2 + "/penaltis"), Map.of("jogadorId", cobradoresA[i], "convertido", true));
             JsonNode s = ok(post("/partidas/" + partida2 + "/penaltis"), Map.of("jogadorId", cobradoresB[i], "convertido", false));
             if (i < 2) assertTrue(s.get("penaltis").get("decididoParaTimeId").isNull());
             else assertEquals(timeA, s.get("penaltis").get("decididoParaTimeId").asLong());
         }
-        erro(post("/partidas/" + partida2 + "/penaltis"), Map.of("jogadorId", jogadoresA.get(3), "convertido", true));
+        erro(post("/partidas/" + partida2 + "/penaltis"), Map.of("jogadorId", cobradoresA[0], "convertido", true));
 
         // desfaz a última cobrança (errei o lançamento) e refaz como gol do B → segue aberto
         JsonNode desfeito = ok(delete("/partidas/" + partida2 + "/penaltis/ultimo"));
@@ -416,18 +438,18 @@ class FluxoDaPeladaTest {
         assertTrue(alguemMudou, "o overall precisa refletir as estatísticas");
 
         // cache do jogador atualizado
-        JsonNode jogadores = ok(get("/jogadores"));
+        JsonNode jogadores = ok(get("/jogadores?grupoId=" + grupoId));
         int diferentesDe60 = 0;
         for (JsonNode j : jogadores) if (j.get("overall").asInt() != 60) diferentesDe60++;
         assertTrue(diferentesDe60 > 0);
 
-        assertNull(chamar(get("/peladas/atual"), null, 204));
+        assertNull(chamar(get("/peladas/atual?grupoId=" + grupoId), null, 204));
     }
 
     @Test @Order(14)
     void rankingsDoMesDoAnoEGeral() throws Exception {
         for (String periodo : List.of("MES", "ANO", "GERAL")) {
-            JsonNode r = ok(get("/rankings?periodo=" + periodo));
+            JsonNode r = ok(get("/rankings?grupoId=" + grupoId + "&periodo=" + periodo));
             assertEquals(1, r.get("peladas").asInt(), periodo);
             assertTrue(r.get("vencedores").size() > 0, periodo);
             assertTrue(r.get("goleadores").size() > 0, periodo);
@@ -442,19 +464,19 @@ class FluxoDaPeladaTest {
             }
         }
         // o time A ganhou a partida 1 sem levar gol: o goleiro dele lidera os "sem sofrer"
-        JsonNode goleiros = ok(get("/rankings?periodo=GERAL")).get("goleiros");
+        JsonNode goleiros = ok(get("/rankings?grupoId=" + grupoId + "&periodo=GERAL")).get("goleiros");
         assertTrue(goleiros.size() >= 1);
         assertTrue(goleiros.get(0).get("valor").asDouble() >= 1);
 
         // mês sem partidas → vazio
         LocalDate hoje = LocalDate.now(relogio);
         LocalDate outroMes = hoje.minusMonths(2);
-        JsonNode vazio = ok(get("/rankings?periodo=MES&ano=" + outroMes.getYear() + "&mes=" + outroMes.getMonthValue()));
+        JsonNode vazio = ok(get("/rankings?grupoId=" + grupoId + "&periodo=MES&ano=" + outroMes.getYear() + "&mes=" + outroMes.getMonthValue()));
         assertEquals(0, vazio.get("peladas").asInt());
         assertEquals(0, vazio.get("goleadores").size());
 
         // rede de assistências: 3 gols com assistência (o gol da partida 1 sem assistência e o desfeito não contam)
-        JsonNode rede = ok(get("/rankings/conexoes?periodo=GERAL"));
+        JsonNode rede = ok(get("/rankings/conexoes?grupoId=" + grupoId + "&periodo=GERAL"));
         long totalAssistencias = 0;
         java.util.Set<Long> nosDaRede = new java.util.HashSet<>();
         rede.get("nos").forEach(n -> nosDaRede.add(n.get("jogadorId").asLong()));
@@ -465,16 +487,16 @@ class FluxoDaPeladaTest {
         }
         assertEquals(3, rede.get("arestas").size());
         assertEquals(3, totalAssistencias);
-        assertEquals(0, ok(get("/rankings/conexoes?periodo=MES&ano=" + outroMes.getYear() + "&mes="
+        assertEquals(0, ok(get("/rankings/conexoes?grupoId=" + grupoId + "&periodo=MES&ano=" + outroMes.getYear() + "&mes="
                 + outroMes.getMonthValue())).get("arestas").size());
 
-        erro(get("/rankings?periodo=SEMANA"), null);
+        erro(get("/rankings?grupoId=" + grupoId + "&periodo=SEMANA"), null);
     }
 
     @Test @Order(15)
     void segundaPeladaUsaOOverallParaBalancear() throws Exception {
         LocalDate hoje = LocalDate.now(relogio);
-        long segunda = chamar(post("/peladas"), Map.of("dataJogo", hoje.toString(), "horaJogo", "09:00"), 201).get("id").asLong();
+        long segunda = chamar(post("/peladas?grupoId=" + grupoId), Map.of("dataJogo", hoje.toString(), "horaJogo", "09:00"), 201).get("id").asLong();
         List<Long> todos = new ArrayList<>(List.of(g1, g2, tardio));
         todos.addAll(linha);
         for (long id : todos) ok(put("/peladas/" + segunda + "/lista/" + id));
@@ -486,19 +508,19 @@ class FluxoDaPeladaTest {
 
         // a pelada sem partidas pode ser excluída
         chamar(delete("/peladas/" + segunda), null, 204);
-        assertNull(chamar(get("/peladas/atual"), null, 204));
+        assertNull(chamar(get("/peladas/atual?grupoId=" + grupoId), null, 204));
     }
 
     @Test @Order(16)
     void jogadorComHistoricoEArquivadoNaoApagado() throws Exception {
         chamar(delete("/jogadores/" + g1), null, 204);
-        JsonNode lista = ok(get("/jogadores"));
+        JsonNode lista = ok(get("/jogadores?grupoId=" + grupoId));
         boolean arquivado = false;
         for (JsonNode j : lista) if (j.get("id").asLong() == g1) arquivado = !j.get("ativo").asBoolean();
         assertTrue(arquivado);
 
         // arquivado não entra em lista nova
-        long nova = chamar(post("/peladas"), Map.of("dataJogo", LocalDate.now(relogio).toString(), "horaJogo", "10:00"), 201)
+        long nova = chamar(post("/peladas?grupoId=" + grupoId), Map.of("dataJogo", LocalDate.now(relogio).toString(), "horaJogo", "10:00"), 201)
                 .get("id").asLong();
         erro(put("/peladas/" + nova + "/lista/" + g1), null);
         assertEquals(g1, ok(post("/jogadores/" + g1 + "/reativar")).get("id").asLong());
@@ -508,7 +530,7 @@ class FluxoDaPeladaTest {
         // quem nunca jogou é apagado de verdade
         long sozinho = criarJogador("Sem Historico", false);
         chamar(delete("/jogadores/" + sozinho), null, 204);
-        for (JsonNode j : ok(get("/jogadores"))) assertTrue(j.get("id").asLong() != sozinho);
+        for (JsonNode j : ok(get("/jogadores?grupoId=" + grupoId))) assertTrue(j.get("id").asLong() != sozinho);
     }
 
     @Test @Order(17)
@@ -540,8 +562,9 @@ class FluxoDaPeladaTest {
     @Test @Order(18)
     void penaltisNormalPreDeterminadoEAlternadosComCiclo() throws Exception {
         LocalDate hoje = LocalDate.now(relogio);
-        long pelada = chamar(post("/peladas"), Map.of("dataJogo", hoje.toString(), "horaJogo", "11:00"), 201).get("id").asLong();
-        for (long id : List.of(g1, g2, linha.get(0), linha.get(1))) ok(put("/peladas/" + pelada + "/lista/" + id));
+        long pelada = chamar(post("/peladas?grupoId=" + grupoId), Map.of("dataJogo", hoje.toString(), "horaJogo", "11:00"), 201).get("id").asLong();
+        // 4 jogadores de linha (goleiros não entram no sorteio, então não servem aqui).
+        for (long id : List.of(linha.get(0), linha.get(1), linha.get(2), linha.get(3))) ok(put("/peladas/" + pelada + "/lista/" + id));
         JsonNode sorteada = ok(post("/peladas/" + pelada + "/sorteio"), Map.of("jogadoresPorTime", 2));
         long tA = sorteada.get("times").get(0).get("id").asLong();
         long tB = sorteada.get("times").get(1).get("id").asLong();
@@ -598,6 +621,34 @@ class FluxoDaPeladaTest {
         assertTrue(pen.get("decididoParaTimeId").isNull());
         // sem a partida ser decidida, ela não fecha
         erro(post("/partidas/" + partida + "/penaltis/encerrar"), null);
+    }
+
+
+    @Test @Order(19)
+    void gruposSaoIsoladosEntreSi() throws Exception {
+        long outro = chamar(post("/grupos"), Map.of("nome", "Outro Grupo"), 201).get("id").asLong();
+        assertTrue(ok(get("/grupos")).size() >= 3, "grupo padrão da migration + os dois do teste");
+
+        // elenco, pelada atual e ranking do outro grupo começam vazios, sem enxergar o primeiro
+        assertEquals(0, ok(get("/jogadores?grupoId=" + outro)).size());
+        assertNull(chamar(get("/peladas/atual?grupoId=" + outro), null, 204));
+        assertEquals(0, ok(get("/rankings?grupoId=" + outro + "&periodo=GERAL")).get("peladas").asInt());
+        assertTrue(ok(get("/rankings?grupoId=" + grupoId + "&periodo=GERAL")).get("peladas").asInt() > 0);
+
+        // jogador de outro grupo não entra na lista da pelada deste grupo
+        long forasteiro = chamar(post("/jogadores?grupoId=" + outro), Map.of("nome", "Forasteiro"), 201).get("id").asLong();
+        long peladaAqui = ok(get("/peladas/atual?grupoId=" + grupoId)).get("id").asLong(); // a do step 18 segue aberta
+        JsonNode e = erro(put("/peladas/" + peladaAqui + "/lista/" + forasteiro), null);
+        assertTrue(e.get("mensagem").asText().contains("outro grupo"), e.toString());
+
+        // cada grupo pode ter a sua própria pelada em aberto
+        chamar(post("/peladas?grupoId=" + outro),
+                Map.of("dataJogo", LocalDate.now(relogio).toString(), "horaJogo", "13:00"), 201);
+
+        // grupo com jogadores não pode ser excluído; grupo vazio pode
+        erro(delete("/grupos/" + outro), null);
+        long vazio = chamar(post("/grupos"), Map.of("nome", "Vazio"), 201).get("id").asLong();
+        chamar(delete("/grupos/" + vazio), null, 204);
     }
 
 }

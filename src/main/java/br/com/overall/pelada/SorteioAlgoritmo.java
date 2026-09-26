@@ -2,18 +2,18 @@ package br.com.overall.pelada;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 /**
- * Divide os jogadores da lista em times.
+ * Divide os jogadores de linha da lista em times.
+ *
+ * <p>Goleiros não entram aqui: eles não ocupam vaga em nenhum time (ver {@link br.com.overall.pelada.PeladaService}),
+ * já que quem vai para o gol é escolhido partida a partida, não no sorteio.</p>
  *
  * <ul>
  *   <li>Times cheios (com {@code tamanhoTime} jogadores) primeiro; o que sobrar forma o último time,
  *       incompleto — como acontece na pelada de verdade.</li>
- *   <li>Goleiros são espalhados: no máximo um por time enquanto houver times sem goleiro.</li>
  *   <li>Modo aleatório: só embaralha.</li>
  *   <li>Modo balanceado: sorteia várias divisões aleatórias e melhora cada uma trocando jogadores
  *       de times diferentes enquanto isso aproximar a média de overall dos times. Fica o melhor resultado.
@@ -22,7 +22,7 @@ import java.util.Set;
  */
 public final class SorteioAlgoritmo {
 
-    public record Candidato(Long id, int overall, boolean goleiro) {}
+    public record Candidato(Long id, int overall) {}
 
     private static final int TENTATIVAS_BALANCEADO = 60;
 
@@ -51,9 +51,8 @@ public final class SorteioAlgoritmo {
         double melhorPontuacao = Double.MAX_VALUE;
         int tentativas = balancear ? TENTATIVAS_BALANCEADO : 1;
         for (int t = 0; t < tentativas; t++) {
-            Set<Long> goleirosFixos = new HashSet<>();
-            List<List<Candidato>> times = montarAleatorio(candidatos, capacidade, rnd, goleirosFixos);
-            if (balancear) melhorar(times, goleirosFixos, media);
+            List<List<Candidato>> times = montarAleatorio(candidatos, capacidade, rnd);
+            if (balancear) melhorar(times, media);
             double pontuacao = balancear ? pontuar(times, media) : 0;
             if (melhor == null || pontuacao < melhorPontuacao) {
                 melhor = times;
@@ -66,30 +65,13 @@ public final class SorteioAlgoritmo {
         return resultado;
     }
 
-    private static List<List<Candidato>> montarAleatorio(List<Candidato> candidatos, int[] capacidade,
-                                                         Random rnd, Set<Long> goleirosFixos) {
+    private static List<List<Candidato>> montarAleatorio(List<Candidato> candidatos, int[] capacidade, Random rnd) {
         int numTimes = capacidade.length;
-        List<Candidato> goleiros = new ArrayList<>(candidatos.stream().filter(Candidato::goleiro).toList());
-        List<Candidato> demais = new ArrayList<>(candidatos.stream().filter(c -> !c.goleiro()).toList());
-        Collections.shuffle(goleiros, rnd);
+        List<Candidato> demais = new ArrayList<>(candidatos);
+        Collections.shuffle(demais, rnd);
 
         List<List<Candidato>> times = new ArrayList<>();
         for (int i = 0; i < numTimes; i++) times.add(new ArrayList<>());
-
-        // Um goleiro por time, em ordem aleatória de times.
-        List<Integer> ordem = new ArrayList<>();
-        for (int i = 0; i < numTimes; i++) ordem.add(i);
-        Collections.shuffle(ordem, rnd);
-        int g = 0;
-        for (int t : ordem) {
-            if (g >= goleiros.size()) break;
-            Candidato goleiro = goleiros.get(g++);
-            times.get(t).add(goleiro);
-            goleirosFixos.add(goleiro.id());
-        }
-        // Goleiros excedentes jogam na linha.
-        demais.addAll(goleiros.subList(g, goleiros.size()));
-        Collections.shuffle(demais, rnd);
 
         int proximo = 0;
         for (int t = 0; t < numTimes; t++) {
@@ -98,8 +80,8 @@ public final class SorteioAlgoritmo {
         return times;
     }
 
-    /** Hill-climbing: troca pares de jogadores (goleiro só com goleiro) enquanto a pontuação cair. */
-    private static void melhorar(List<List<Candidato>> times, Set<Long> goleirosFixos, double media) {
+    /** Hill-climbing: troca pares de jogadores entre times enquanto a pontuação cair. */
+    private static void melhorar(List<List<Candidato>> times, double media) {
         double atual = pontuar(times, media);
         boolean melhorou = true;
         while (melhorou) {
@@ -110,7 +92,6 @@ public final class SorteioAlgoritmo {
                     for (int a = 0; a < ti.size(); a++) {
                         for (int b = 0; b < tj.size(); b++) {
                             Candidato ca = ti.get(a), cb = tj.get(b);
-                            if (goleirosFixos.contains(ca.id()) != goleirosFixos.contains(cb.id())) continue;
                             ti.set(a, cb); tj.set(b, ca);
                             double nova = pontuar(times, media);
                             if (nova < atual - 1e-9) { atual = nova; melhorou = true; }

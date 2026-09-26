@@ -14,6 +14,9 @@ public class Pelada {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "grupo_id", nullable = false)
+    private Long grupoId;
+
     @Column(name = "data_jogo", nullable = false)
     private LocalDate dataJogo;
 
@@ -45,11 +48,12 @@ public class Pelada {
 
     public Pelada() {}
 
-    public Pelada(LocalDate dataJogo, LocalTime horaJogo) {
-        this.dataJogo = dataJogo; this.horaJogo = horaJogo;
+    public Pelada(Long grupoId, LocalDate dataJogo, LocalTime horaJogo) {
+        this.grupoId = grupoId; this.dataJogo = dataJogo; this.horaJogo = horaJogo;
     }
 
     public Long getId() { return id; }
+    public Long getGrupoId() { return grupoId; }
     public LocalDate getDataJogo() { return dataJogo; }
     public void setDataJogo(LocalDate dataJogo) { this.dataJogo = dataJogo; }
     public LocalTime getHoraJogo() { return horaJogo; }

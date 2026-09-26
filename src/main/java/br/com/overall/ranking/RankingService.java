@@ -79,11 +79,11 @@ public class RankingService {
      * quantidade de gols da dupla.
      */
     @Transactional(readOnly = true)
-    public ConexoesResponse conexoes(Periodo periodo, Integer ano, Integer mes) {
+    public ConexoesResponse conexoes(Long grupoId, Periodo periodo, Integer ano, Integer mes) {
         LocalDate[] i = intervalo(periodo, ano, mes);
-        Map<Long, Estatisticas> stats = agregador.periodo(i[0], i[1]);
+        Map<Long, Estatisticas> stats = agregador.periodo(grupoId, i[0], i[1]);
 
-        List<ConexoesResponse.Aresta> arestas = golRepository.duplasDeAssistencia(i[0], i[1]).stream()
+        List<ConexoesResponse.Aresta> arestas = golRepository.duplasDeAssistencia(grupoId, i[0], i[1]).stream()
                 .map(l -> new ConexoesResponse.Aresta(((Number) l[0]).longValue(), ((Number) l[1]).longValue(),
                         ((Number) l[2]).longValue()))
                 .sorted(Comparator.comparingLong(ConexoesResponse.Aresta::quantidade).reversed())
@@ -104,11 +104,11 @@ public class RankingService {
     }
 
     @Transactional(readOnly = true)
-    public RankingResponse ranking(Periodo periodo, Integer ano, Integer mes) {
+    public RankingResponse ranking(Long grupoId, Periodo periodo, Integer ano, Integer mes) {
         LocalDate[] intervalo = intervalo(periodo, ano, mes);
         LocalDate de = intervalo[0], ate = intervalo[1];
 
-        Map<Long, Estatisticas> stats = agregador.periodo(de, ate);
+        Map<Long, Estatisticas> stats = agregador.periodo(grupoId, de, ate);
         Map<Long, Jogador> jogadores = jogadorRepository.findAllById(stats.keySet()).stream()
                 .collect(Collectors.toMap(Jogador::getId, Function.identity()));
 
@@ -124,8 +124,8 @@ public class RankingService {
         List<Item> notas = ordenar(stats, jogadores, e -> e.partidas() > 0,
                 Estatisticas::notaMedia, e -> e.partidas() + " jogos", true);
 
-        return new RankingResponse(periodo.name(), de, ate, estatisticaRepository.contarPeladas(de, ate),
-                vencedores, goleadores, assistentes, goleiros, notas, overalls(de, ate, stats, jogadores));
+        return new RankingResponse(periodo.name(), de, ate, estatisticaRepository.contarPeladas(grupoId, de, ate),
+                vencedores, goleadores, assistentes, goleiros, notas, overalls(grupoId, de, ate, stats, jogadores));
     }
 
     public static Periodo periodo(String texto) {
@@ -156,10 +156,10 @@ public class RankingService {
     }
 
     /** Overall no fim do período (da última pelada finalizada em que jogou) e a variação no período. */
-    private List<Item> overalls(LocalDate de, LocalDate ate, Map<Long, Estatisticas> stats, Map<Long, Jogador> jogadores) {
+    private List<Item> overalls(Long grupoId, LocalDate de, LocalDate ate, Map<Long, Estatisticas> stats, Map<Long, Jogador> jogadores) {
         Map<Long, Integer> primeiroAntes = new HashMap<>();
         Map<Long, Integer> ultimoDepois = new HashMap<>();
-        for (Object[] linha : peladaJogadorRepository.evolucaoDoOverall(de, ate)) {
+        for (Object[] linha : peladaJogadorRepository.evolucaoDoOverall(grupoId, de, ate)) {
             Long jogadorId = ((Number) linha[0]).longValue();
             if (!stats.containsKey(jogadorId)) continue; // só quem jogou alguma partida no período
             if (linha[1] != null) primeiroAntes.putIfAbsent(jogadorId, ((Number) linha[1]).intValue());

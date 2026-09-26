@@ -22,17 +22,19 @@ public class RankingController {
 
     @GetMapping
     @Operation(summary = "Vencedores, goleadores, assistentes, goleiros, notas e overalls de um período")
-    public RankingResponse ranking(@RequestParam(defaultValue = "MES") String periodo,
+    public RankingResponse ranking(@RequestParam Long grupoId,
+                                   @RequestParam(defaultValue = "MES") String periodo,
                                    @RequestParam(required = false) Integer ano,
                                    @RequestParam(required = false) Integer mes) {
-        return rankingService.ranking(RankingService.periodo(periodo), ano, mes);
+        return rankingService.ranking(grupoId, RankingService.periodo(periodo), ano, mes);
     }
 
     @GetMapping("/conexoes")
     @Operation(summary = "Rede de assistências (assistente → autor) de um período")
-    public ConexoesResponse conexoes(@RequestParam(defaultValue = "MES") String periodo,
+    public ConexoesResponse conexoes(@RequestParam Long grupoId,
+                                     @RequestParam(defaultValue = "MES") String periodo,
                                      @RequestParam(required = false) Integer ano,
                                      @RequestParam(required = false) Integer mes) {
-        return rankingService.conexoes(RankingService.periodo(periodo), ano, mes);
+        return rankingService.conexoes(grupoId, RankingService.periodo(periodo), ano, mes);
     }
 }

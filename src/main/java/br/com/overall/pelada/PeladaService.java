@@ -8,6 +8,7 @@ import br.com.overall.estatistica.OverallCalculator;
 import br.com.overall.estatistica.Resultado;
 import br.com.overall.exception.RecursoNaoEncontradoException;
 import br.com.overall.exception.RegraDeNegocioException;
+import br.com.overall.grupo.GrupoPeladaRepository;
 import br.com.overall.jogador.Jogador;
 import br.com.overall.jogador.JogadorRepository;
 import br.com.overall.partida.Gol;
@@ -54,6 +55,7 @@ public class PeladaService {
     private static final DateTimeFormatter DIA_MES = DateTimeFormatter.ofPattern("dd/MM");
 
     private final PeladaRepository peladaRepository;
+    private final GrupoPeladaRepository grupoRepository;
     private final PeladaJogadorRepository peladaJogadorRepository;
     private final TimePeladaRepository timePeladaRepository;
     private final TimePeladaJogadorRepository timePeladaJogadorRepository;
@@ -66,6 +68,7 @@ public class PeladaService {
     private final Clock clock;
 
     public PeladaService(PeladaRepository peladaRepository,
+                         GrupoPeladaRepository grupoRepository,
                          PeladaJogadorRepository peladaJogadorRepository,
                          TimePeladaRepository timePeladaRepository,
                          TimePeladaJogadorRepository timePeladaJogadorRepository,
@@ -77,6 +80,7 @@ public class PeladaService {
                          EstatisticaAgregador agregador,
                          Clock clock) {
         this.peladaRepository = peladaRepository;
+        this.grupoRepository = grupoRepository;
         this.peladaJogadorRepository = peladaJogadorRepository;
         this.timePeladaRepository = timePeladaRepository;
         this.timePeladaJogadorRepository = timePeladaJogadorRepository;
@@ -92,13 +96,14 @@ public class PeladaService {
     // ------------------------------------------------------------------ CRUD da pelada
 
     @Transactional
-    public PeladaResponse criar(PeladaRequest req) {
-        peladaRepository.findFirstByStatusNotOrderByDataJogoAscIdAsc(PeladaStatus.FINALIZADA).ifPresent(aberta -> {
+    public PeladaResponse criar(Long grupoId, PeladaRequest req) {
+        grupoRepository.findById(grupoId).orElseThrow(() -> new RecursoNaoEncontradoException("Grupo não encontrado."));
+        peladaRepository.findFirstByGrupoIdAndStatusNotOrderByDataJogoAscIdAsc(grupoId, PeladaStatus.FINALIZADA).ifPresent(aberta -> {
             throw new RegraDeNegocioException("Já existe uma pelada em aberto (" + aberta.getDataJogo().format(DIA_MES)
                     + "). Finalize ou exclua essa antes de criar outra.");
         });
         validarData(req.dataJogo());
-        return montar(peladaRepository.save(new Pelada(req.dataJogo(), req.horaJogo())));
+        return montar(peladaRepository.save(new Pelada(grupoId, req.dataJogo(), req.horaJogo())));
     }
 
     @Transactional
@@ -123,8 +128,8 @@ public class PeladaService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<PeladaResponse> atual() {
-        return peladaRepository.findFirstByStatusNotOrderByDataJogoAscIdAsc(PeladaStatus.FINALIZADA)
+    public Optional<PeladaResponse> atual(Long grupoId) {
+        return peladaRepository.findFirstByGrupoIdAndStatusNotOrderByDataJogoAscIdAsc(grupoId, PeladaStatus.FINALIZADA)
                 .map(this::montar);
     }
 
@@ -134,8 +139,8 @@ public class PeladaService {
     }
 
     @Transactional(readOnly = true)
-    public List<PeladaListaItem> historico() {
-        return peladaRepository.findAllByOrderByDataJogoDescIdDesc().stream()
+    public List<PeladaListaItem> historico(Long grupoId) {
+        return peladaRepository.findByGrupoIdOrderByDataJogoDescIdDesc(grupoId).stream()
                 .map(p -> new PeladaListaItem(p.getId(), p.getDataJogo(), p.getHoraJogo(), p.getStatus(),
                         peladaJogadorRepository.findByPeladaId(p.getId()).size(),
                         partidaRepository.findByPeladaIdOrderByOrdemAsc(p.getId()).size()))
@@ -151,6 +156,8 @@ public class PeladaService {
             throw new RegraDeNegocioException("Esta pelada já foi finalizada.");
         Jogador jogador = jogadorRepository.findById(jogadorId).orElseThrow(
                 () -> new RecursoNaoEncontradoException("Jogador não encontrado."));
+        if (!jogador.getGrupoId().equals(pelada.getGrupoId()))
+            throw new RegraDeNegocioException("Este jogador pertence a outro grupo.");
         if (!jogador.isAtivo())
             throw new RegraDeNegocioException("Este jogador está arquivado. Reative-o para adicionar à lista.");
         if (!peladaJogadorRepository.existsByPeladaIdAndJogadorId(peladaId, jogadorId))
@@ -185,21 +192,24 @@ public class PeladaService {
                     + pelada.getDataJogo().format(DIA_MES) + ").");
 
         int tamanho = req.jogadoresPorTime();
-        List<Long> ids = peladaJogadorRepository.findByPeladaId(peladaId).stream()
+        List<Long> idsDaLista = peladaJogadorRepository.findByPeladaId(peladaId).stream()
                 .map(PeladaJogador::getJogadorId).toList();
-        if (SorteioAlgoritmo.quantidadeDeTimes(ids.size(), tamanho) < 2)
-            throw new RegraDeNegocioException("Com " + ids.size() + " jogadores e " + tamanho
+        // Goleiros não entram no sorteio: não ocupam vaga em nenhum time. Quem vai para o gol
+        // é escolhido na escalação de cada partida (endpoint /partidas/{id}/goleiro).
+        List<Jogador> jogadores = jogadorRepository.findAllById(idsDaLista).stream()
+                .filter(j -> !j.isGoleiro()).toList();
+        if (SorteioAlgoritmo.quantidadeDeTimes(jogadores.size(), tamanho) < 2)
+            throw new RegraDeNegocioException("Com " + jogadores.size() + " jogadores de linha e " + tamanho
                     + " por time não dá para formar 2 times. Adicione jogadores ou reduza o tamanho do time.");
 
-        List<Jogador> jogadores = jogadorRepository.findAllById(ids);
-        Map<Long, Estatisticas> historico = agregador.geral();
+        Map<Long, Estatisticas> historico = agregador.geral(pelada.getGrupoId());
         long comDados = jogadores.stream()
                 .filter(j -> historico.getOrDefault(j.getId(), Estatisticas.vazia()).partidas() >= MIN_JOGOS_CONFIAVEL)
                 .count();
         boolean balancear = comDados >= Math.ceil(jogadores.size() * FRACAO_MINIMA_COM_DADOS);
 
         List<SorteioAlgoritmo.Candidato> candidatos = jogadores.stream()
-                .map(j -> new SorteioAlgoritmo.Candidato(j.getId(), j.getOverall(), j.isGoleiro())).toList();
+                .map(j -> new SorteioAlgoritmo.Candidato(j.getId(), j.getOverall())).toList();
         List<List<Long>> resultado = SorteioAlgoritmo.sortear(candidatos, tamanho, balancear, ThreadLocalRandom.current());
 
         limparTimes(peladaId);
@@ -227,8 +237,8 @@ public class PeladaService {
             throw new RegraDeNegocioException("Encerre a partida em aberto antes de finalizar a pelada.");
 
         List<EstatisticaPartida> linhas = estatisticaRepository.findByPeladaId(id);
-        Map<Long, Estatisticas> antes = agregador.geralExceto(id);
-        Map<Long, Estatisticas> depois = agregador.geral();
+        Map<Long, Estatisticas> antes = agregador.geralExceto(pelada.getGrupoId(), id);
+        Map<Long, Estatisticas> depois = agregador.geral(pelada.getGrupoId());
         Map<Long, Jogador> jogadores = mapaDeJogadores(peladaJogadorRepository.findByPeladaId(id).stream()
                 .map(PeladaJogador::getJogadorId).toList());
 
@@ -422,7 +432,7 @@ public class PeladaService {
         boolean sorteioLiberado = (pelada.getStatus() == PeladaStatus.ABERTA || pelada.getStatus() == PeladaStatus.SORTEADA)
                 && !pelada.getDataJogo().isAfter(LocalDate.now(clock));
 
-        return new PeladaResponse(id, pelada.getDataJogo(), pelada.getHoraJogo(), pelada.getStatus(),
+        return new PeladaResponse(id, pelada.getGrupoId(), pelada.getDataJogo(), pelada.getHoraJogo(), pelada.getStatus(),
                 pelada.getJogadoresPorTime(), pelada.getModoSorteio(), pelada.getDuracaoMinutos(),
                 pelada.getGolsParaEncerrar(), sorteioLiberado, listaOrdenada, timesDto, partidasDto, emAberto, sugestao);
     }

@@ -3,26 +3,43 @@
 /** Função de limpeza da tela atual (ex.: para o cronômetro da partida). */
 let aoSair = null;
 
+// Rotas com `g: true` vivem dentro de um grupo: o 1º número da URL é o id do grupo (vira GID).
 const ROTAS = [
-  { re: /^#\/pelada$/, tab: 'pelada', titulo: 'Pelada', tela: (v) => telaPelada(v) },
-  { re: /^#\/jogadores$/, tab: 'jogadores', titulo: 'Jogadores', tela: (v) => telaJogadores(v) },
-  { re: /^#\/rankings$/, tab: 'rankings', titulo: 'Rankings', tela: (v) => telaRankings(v) },
+  { re: /^#\/grupos$/, tab: null, titulo: 'Grupos', tela: (v) => telaGrupos(v) },
+  { re: /^#\/grupos\/(\d+)$/, g: true, tab: 'pelada', titulo: 'Grupo', tela: (v) => telaPelada(v) },
+  { re: /^#\/grupos\/(\d+)\/times$/, g: true, tab: 'pelada', titulo: 'Times', tela: (v) => telaPelada(v, 'times') },
+  { re: /^#\/grupos\/(\d+)\/peladas$/, g: true, tab: 'pelada', titulo: 'Peladas', tela: () => telaBibliotecaPeladas() },
+  { re: /^#\/grupos\/(\d+)\/jogadores$/, g: true, tab: 'jogadores', titulo: 'Jogadores', tela: (v) => telaJogadores(v) },
+  { re: /^#\/grupos\/(\d+)\/rankings$/, g: true, tab: 'rankings', titulo: 'Rankings', tela: (v) => telaRankings(v) },
   { re: /^#\/conta$/, tab: 'conta', titulo: 'Conta', tela: (v) => telaConta(v) },
-  { re: /^#\/partida\/(\d+)$/, tab: 'pelada', titulo: 'Ao vivo', tela: (v, id) => telaPartida(v, Number(id)) },
-  { re: /^#\/resumo\/(\d+)$/, tab: 'pelada', titulo: 'Resumo', tela: (v, id) => telaResumo(v, Number(id)) }
+  { re: /^#\/grupos\/(\d+)\/partida\/(\d+)$/, g: true, tab: 'pelada', titulo: 'Ao vivo', tela: (v, id) => telaPartida(v, Number(id)) },
+  { re: /^#\/grupos\/(\d+)\/resumo\/(\d+)$/, g: true, tab: 'pelada', titulo: 'Resumo', tela: (v, id) => telaResumo(v, Number(id)) }
 ];
 const ABAS = ['pelada', 'jogadores', 'rankings', 'conta'];
+
+/** Os atalhos da barra de baixo apontam para o grupo atual (ou para a biblioteca, se ainda não há um). */
+function atualizarNav() {
+  const base = GID ? `#/grupos/${GID}` : '#/grupos';
+  const destino = { pelada: base, jogadores: GID ? base + '/jogadores' : base, rankings: GID ? base + '/rankings' : base, conta: '#/conta' };
+  document.querySelectorAll('.nav a').forEach(a => { a.href = destino[a.dataset.tab]; });
+}
 
 async function rotear() {
   if (!token) return;
   if (aoSair) { aoSair(); aoSair = null; }
   fecharSheet();
-  const hash = location.hash || '#/pelada';
+  const hash = location.hash || '#/grupos';
   const rota = ROTAS.find(r => r.re.test(hash)) || ROTAS[0];
   const args = (hash.match(rota.re) || []).slice(1);
+  if (rota.g) {
+    GID = Number(args.shift());
+    try { localStorage.setItem('overall_gid', String(GID)); } catch (e) { /* ignora */ }
+  }
+  atualizarNav();
 
   document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.tab === rota.tab));
-  document.querySelector('.nav').style.setProperty('--idx', ABAS.indexOf(rota.tab));
+  document.querySelector('.nav').style.setProperty('--idx', Math.max(0, ABAS.indexOf(rota.tab)));
+  document.querySelector('.nav-pill').style.opacity = rota.tab ? '' : '0';
   document.getElementById('topbar-title').textContent = rota.titulo;
 
   const view = document.getElementById('view');
@@ -60,7 +77,7 @@ async function doLogin() {
 function mostrarApp() {
   document.getElementById('login-screen').hidden = true;
   document.getElementById('app').hidden = false;
-  if (!location.hash) location.hash = '#/pelada';
+  if (!location.hash) location.hash = '#/grupos';
   rotear();
 }
 
@@ -103,6 +120,8 @@ function telaConta() {
       <div class="eyebrow mt-4">Níveis da carta</div>
       <div class="row wrap gap-2 mt-2">${[[40, 'Bronze <55'], [58, 'Prata 55–64'], [70, 'Ouro 65–79'], [85, 'Elite 80+']].map(([n, r]) => `<span class="row gap-2">${ovr(n)}<span class="small muted">${r}</span></span>`).join('')}</div>
       <p class="small muted mt-4">A <b>nota</b> do jogo (3 a 10) é separada do overall. Os pênaltis decidem quem fica na quadra, mas não contam como gol.</p></div>
+
+    <a class="btn block" href="#/grupos" style="margin-bottom:12px">${ic('grid')} Trocar de grupo</a>
 
     <button class="btn danger block" onclick="sair()">${ic('logout')} Sair</button>`);
 }

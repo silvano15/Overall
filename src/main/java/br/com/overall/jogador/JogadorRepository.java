@@ -9,4 +9,10 @@ import java.util.List;
 public interface JogadorRepository extends JpaRepository<Jogador, Long> {
 
     List<Jogador> findByAtivoTrueOrderByNomeAsc();
+
+    List<Jogador> findByGrupoId(Long grupoId);
+
+    boolean existsByGrupoId(Long grupoId);
+
+    long countByGrupoIdAndAtivoTrue(Long grupoId);
 }

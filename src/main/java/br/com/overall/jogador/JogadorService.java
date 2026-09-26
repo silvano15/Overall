@@ -33,10 +33,10 @@ public class JogadorService {
     }
 
     @Transactional
-    public JogadorResponse cadastrar(JogadorRequest req) {
+    public JogadorResponse cadastrar(Long grupoId, JogadorRequest req) {
         String foto = req.foto() == null || req.foto().isBlank() ? null : req.foto();
         Jogador salvo = jogadorRepository.save(
-                new Jogador(req.nome().trim(), foto, Boolean.TRUE.equals(req.goleiro())));
+                new Jogador(grupoId, req.nome().trim(), foto, Boolean.TRUE.equals(req.goleiro())));
         return JogadorResponse.de(salvo, null);
     }
 
@@ -46,7 +46,7 @@ public class JogadorService {
         j.setNome(req.nome().trim());
         if (req.foto() != null) j.setFoto(req.foto().isBlank() ? null : req.foto()); // null = mantém
         if (req.goleiro() != null) j.setGoleiro(req.goleiro());
-        return JogadorResponse.de(jogadorRepository.save(j), agregador.geral().get(id));
+        return JogadorResponse.de(jogadorRepository.save(j), agregador.geral(j.getGrupoId()).get(id));
     }
 
     /**
@@ -68,14 +68,14 @@ public class JogadorService {
     public JogadorResponse reativar(Long id) {
         Jogador j = buscarOuFalhar(id);
         j.setAtivo(true);
-        return JogadorResponse.de(jogadorRepository.save(j), agregador.geral().get(id));
+        return JogadorResponse.de(jogadorRepository.save(j), agregador.geral(j.getGrupoId()).get(id));
     }
 
-    /** Todos os jogadores (inclusive arquivados: o cliente usa como cache de nomes e fotos). */
+    /** Todos os jogadores do grupo (inclusive arquivados: o cliente usa como cache de nomes e fotos). */
     @Transactional(readOnly = true)
-    public List<JogadorResponse> listar() {
-        Map<Long, Estatisticas> estatisticas = agregador.geral();
-        return jogadorRepository.findAll().stream()
+    public List<JogadorResponse> listar(Long grupoId) {
+        Map<Long, Estatisticas> estatisticas = agregador.geral(grupoId);
+        return jogadorRepository.findByGrupoId(grupoId).stream()
                 .sorted(Comparator.comparing(Jogador::getNome, String.CASE_INSENSITIVE_ORDER))
                 .map(j -> JogadorResponse.de(j, estatisticas.get(j.getId())))
                 .toList();
@@ -83,7 +83,8 @@ public class JogadorService {
 
     @Transactional(readOnly = true)
     public JogadorResponse buscar(Long id) {
-        return JogadorResponse.de(buscarOuFalhar(id), agregador.geral().get(id));
+        Jogador j = buscarOuFalhar(id);
+        return JogadorResponse.de(j, agregador.geral(j.getGrupoId()).get(id));
     }
 
     private Jogador buscarOuFalhar(Long id) {

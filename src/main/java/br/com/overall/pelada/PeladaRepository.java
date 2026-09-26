@@ -10,9 +10,11 @@ import java.util.Optional;
 public interface PeladaRepository extends JpaRepository<Pelada, Long> {
 
     /** A pelada "da vez": a não finalizada mais próxima. */
-    Optional<Pelada> findFirstByStatusNotOrderByDataJogoAscIdAsc(PeladaStatus status);
+    Optional<Pelada> findFirstByGrupoIdAndStatusNotOrderByDataJogoAscIdAsc(Long grupoId, PeladaStatus status);
 
-    boolean existsByStatusNot(PeladaStatus status);
+    boolean existsByGrupoIdAndStatusNot(Long grupoId, PeladaStatus status);
 
-    List<Pelada> findAllByOrderByDataJogoDescIdDesc();
+    long countByGrupoId(Long grupoId);
+
+    List<Pelada> findByGrupoIdOrderByDataJogoDescIdDesc(Long grupoId);
 }

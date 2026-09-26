@@ -18,7 +18,7 @@ async function telaRankings() {
 }
 
 function urlPeriodo(base) {
-  let url = `${base}?periodo=${RK.periodo}`;
+  let url = `${base}?grupoId=${GID}&periodo=${RK.periodo}`;
   if (RK.periodo === 'MES') url += `&ano=${RK.ano}&mes=${RK.mes}`;
   if (RK.periodo === 'ANO') url += `&ano=${RK.ano}`;
   return url;

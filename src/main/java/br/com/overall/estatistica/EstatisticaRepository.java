@@ -1,5 +1,6 @@
 package br.com.overall.estatistica;
 
+import br.com.overall.pelada.Pelada;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -28,14 +29,15 @@ public interface EstatisticaRepository extends JpaRepository<EstatisticaPartida,
                    sum(case when e.semSofrer = true then 1 else 0 end),
                    sum(case when e.goleiro = true then e.golsSofridos else 0 end),
                    avg(e.nota)
-            from EstatisticaPartida e
-            where e.dataJogo between :de and :ate
+            from EstatisticaPartida e, Pelada p
+            where e.peladaId = p.id and p.grupoId = :grupoId and e.dataJogo between :de and :ate
             group by e.jogadorId
             """)
-    List<Object[]> agregarPorPeriodo(@Param("de") LocalDate de, @Param("ate") LocalDate ate);
+    List<Object[]> agregarPorPeriodo(@Param("grupoId") Long grupoId, @Param("de") LocalDate de, @Param("ate") LocalDate ate);
 
-    @Query("select count(distinct e.peladaId) from EstatisticaPartida e where e.dataJogo between :de and :ate")
-    long contarPeladas(@Param("de") LocalDate de, @Param("ate") LocalDate ate);
+    @Query("select count(distinct e.peladaId) from EstatisticaPartida e, Pelada p "
+            + "where e.peladaId = p.id and p.grupoId = :grupoId and e.dataJogo between :de and :ate")
+    long contarPeladas(@Param("grupoId") Long grupoId, @Param("de") LocalDate de, @Param("ate") LocalDate ate);
 
     /** Totais por jogador de tudo, exceto uma pelada (para calcular o overall "antes"). */
     @Query("""
@@ -50,9 +52,9 @@ public interface EstatisticaRepository extends JpaRepository<EstatisticaPartida,
                    sum(case when e.semSofrer = true then 1 else 0 end),
                    sum(case when e.goleiro = true then e.golsSofridos else 0 end),
                    avg(e.nota)
-            from EstatisticaPartida e
-            where e.peladaId <> :peladaId
+            from EstatisticaPartida e, Pelada p
+            where e.peladaId = p.id and p.grupoId = :grupoId and e.peladaId <> :peladaId
             group by e.jogadorId
             """)
-    List<Object[]> agregarExceto(@Param("peladaId") Long peladaId);
+    List<Object[]> agregarExceto(@Param("grupoId") Long grupoId, @Param("peladaId") Long peladaId);
 }

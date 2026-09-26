@@ -24,14 +24,14 @@ public class EstatisticaAgregador {
         this.repository = repository;
     }
 
-    public Map<Long, Estatisticas> geral() { return periodo(INICIO, FIM); }
+    public Map<Long, Estatisticas> geral(Long grupoId) { return periodo(grupoId, INICIO, FIM); }
 
-    public Map<Long, Estatisticas> periodo(LocalDate de, LocalDate ate) {
-        return converter(repository.agregarPorPeriodo(de, ate));
+    public Map<Long, Estatisticas> periodo(Long grupoId, LocalDate de, LocalDate ate) {
+        return converter(repository.agregarPorPeriodo(grupoId, de, ate));
     }
 
-    public Map<Long, Estatisticas> geralExceto(Long peladaId) {
-        return converter(repository.agregarExceto(peladaId));
+    public Map<Long, Estatisticas> geralExceto(Long grupoId, Long peladaId) {
+        return converter(repository.agregarExceto(grupoId, peladaId));
     }
 
     private static Map<Long, Estatisticas> converter(List<Object[]> linhas) {

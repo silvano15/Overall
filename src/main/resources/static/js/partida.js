@@ -100,7 +100,7 @@ function desenharPartida(antes) {
   pintar(`
     <div class="card board" style="padding-bottom:16px">
       <div class="board-top">
-        <a href="#/pelada" class="btn sm ghost">${ic('left', 16)} Pelada</a>
+        <a href="#/grupos/${GID}" class="btn sm ghost">${ic('left', 16)} Pelada</a>
         <span class="chip gray">Partida ${p.ordem}</span>
         <span class="chip ${cls}">${p.status === 'EM_ANDAMENTO' ? '<span class="dot"></span>' : ''}${rotulo}</span>
       </div>
@@ -169,7 +169,7 @@ function blocoDecisao(p) {
       sub = `${nomeDoTime(p.vencedorPenaltisId === a.timeId ? a.numero : b.numero)} venceu nos pênaltis (${p.penaltis.golsA} × ${p.penaltis.golsB}) e fica na quadra.`;
     } else { titulo = `Empate em ${a.gols} × ${b.gols}`; sub = 'Partida encerrada: os dois times saem.'; }
     return `<div class="banner"><div class="row"><span class="chip">${ic('flag', 16)}</span><div><h3>${titulo}</h3>${sub ? `<div class="muted small">${esc(sub)}</div>` : ''}</div></div>
-      <a class="btn primary block lg mt-4" href="#/pelada">Próxima partida ${ic('chevR')}</a></div>`;
+      <a class="btn primary block lg mt-4" href="#/grupos/${GID}">Próxima partida ${ic('chevR')}</a></div>`;
   }
   return '';
 }
@@ -210,7 +210,7 @@ function encerrarPartida() {
 }
 function cancelarPartida() {
   confirmar('Cancelar partida?', 'Ela ainda não começou e será descartada.', 'Cancelar partida', async () => {
-    try { await DEL(`/partidas/${PT.p.id}`); location.hash = '#/pelada'; } catch (e) { erroToast(e); }
+    try { await DEL(`/partidas/${PT.p.id}`); location.hash = `#/grupos/${GID}`; } catch (e) { erroToast(e); }
   });
 }
 
@@ -258,18 +258,31 @@ async function abrirEscalacao(timeId) {
 function desenharEscalacao(timeId) {
   const lado = ladoPorTime(timeId), jogadores = emCampoDo(timeId);
   abrirSheet(`Escalação · ${nomeDoTime(lado.numero)}`, `
-    <div class="small muted" style="margin-bottom:8px">Toque na luva para definir quem está no gol. Use <b>Trocar</b> quando alguém se machucar ou os times mudarem.</div>
+    <div class="small muted" style="margin-bottom:8px">Toque na luva para definir quem está no gol. Qualquer jogador pode agarrar — use <b>Goleiro de fora</b> para escalar alguém que nem está neste time. Use <b>Trocar</b> quando alguém se machucar ou os times mudarem.</div>
     ${jogadores.length ? jogadores.map(a => { const j = J(a.jogadorId); return `
       <div class="p-row">${avatar(j, 'sm')}<span class="p-name">${esc(j.nome)}</span>
         <button class="btn sm icon ${a.goleiro ? 'primary' : ''}" aria-label="Goleiro" onclick="definirGoleiro(${timeId}, ${a.goleiro ? 'null' : a.jogadorId})">${ic('glove', 18)}</button>
         <button class="btn sm" onclick="escolherEntrada(${timeId}, ${a.jogadorId})">${ic('swap', 16)} Trocar</button></div>`; }).join('')
       : '<div class="empty" style="padding:12px">Ninguém em campo neste time.</div>'}
-    <button class="btn block mt-4" onclick="escolherEntrada(${timeId}, null)">${ic('plus')} Reforço (entra sem ninguém sair)</button>`);
+    <button class="btn block mt-2" onclick="escolherGoleiroExterno(${timeId})">${ic('glove')} Goleiro de fora do time</button>
+    <button class="btn block mt-2" onclick="escolherEntrada(${timeId}, null)">${ic('plus')} Reforço (entra sem ninguém sair)</button>`);
 }
 
 function definirGoleiro(timeId, jogadorId) {
   acaoPartidaSemFechar(() => PUT(`/partidas/${PT.p.id}/goleiro`, { timeId, jogadorId }), () => desenharEscalacao(timeId),
-    jogadorId ? `${J(jogadorId).nome} está no gol.` : 'Time sem goleiro fixo.');
+    jogadorId ? `${J(jogadorId).nome} está no gol.` : 'Time sem goleiro definido.');
+}
+
+function escolherGoleiroExterno(timeId) {
+  const p = PT.p;
+  const emCampoAgora = new Set([...p.timeA.jogadores, ...p.timeB.jogadores].filter(a => a.emCampo).map(a => a.jogadorId));
+  const candidatos = PT.pelada.lista.filter(id => !emCampoAgora.has(id))
+    .sort((x, y) => (J(y).goleiro - J(x).goleiro) || J(x).nome.localeCompare(J(y).nome, 'pt-BR'));
+  document.getElementById('sheet-body').innerHTML = `
+    <div class="step">Quem vai pro gol deste time? Qualquer jogador da lista pode agarrar, mesmo sem ser goleiro fixo.</div>
+    ${candidatos.length ? `<div class="pick-grid">${candidatos.map(id => cartaoPick(id, `definirGoleiro(${timeId}, ${id})`, J(id).goleiro)).join('')}</div>`
+      : '<div class="empty">Não há mais ninguém na lista fora de campo.</div>'}
+    <button class="btn block mt-4" onclick="desenharEscalacao(${timeId})">${ic('left', 16)} Voltar</button>`;
 }
 async function acaoPartidaSemFechar(fn, depois, mensagem) {
   try { const p = await fn(); aplicarPartida(p); depois(); if (mensagem) toast(mensagem); } catch (e) { erroToast(e); }

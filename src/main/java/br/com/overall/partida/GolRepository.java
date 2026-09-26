@@ -28,7 +28,7 @@ public interface GolRepository extends JpaRepository<Gol, Long> {
             + "from Gol g, Partida p, Pelada pe "
             + "where g.partidaId = p.id and p.peladaId = pe.id "
             + "and p.status = br.com.overall.partida.PartidaStatus.ENCERRADA "
-            + "and pe.dataJogo between :de and :ate and g.assistenteId is not null "
+            + "and pe.grupoId = :grupoId and pe.dataJogo between :de and :ate and g.assistenteId is not null "
             + "group by g.assistenteId, g.autorId")
-    List<Object[]> duplasDeAssistencia(@Param("de") LocalDate de, @Param("ate") LocalDate ate);
+    List<Object[]> duplasDeAssistencia(@Param("grupoId") Long grupoId, @Param("de") LocalDate de, @Param("ate") LocalDate ate);
 }

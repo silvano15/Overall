@@ -3,7 +3,7 @@
 const JG = { lista: [], pelada: null, busca: '', filtro: 'todos', foto: undefined, editandoId: null };
 
 async function telaJogadores(view) {
-  const [lista, pelada] = await Promise.all([carregarJogadores(), GET('/peladas/atual')]);
+  const [lista, pelada] = await Promise.all([carregarJogadores(), GET(`/peladas/atual?grupoId=${GID}`)]);
   JG.lista = lista; JG.pelada = pelada;
   desenharJogadores();
 }
@@ -23,7 +23,7 @@ function desenharJogadores() {
       ? `<div class="card tight row"><span class="avatar-stack">${pel.lista.slice(0, 5).map(id => avatar(J(id), 'sm')).join('')}</span>
           <div class="grow small"><b>${pel.lista.length} na lista</b> de ${esc(fmtDataLonga(pel.dataJogo))}<br><span class="muted">Toque em “Lista” para adicionar.</span></div></div>`
       : `<div class="card tight row"><span class="chip gray">${ic('calendar', 14)}</span>
-          <div class="grow small muted">Para montar a lista da semana, <a href="#/pelada" style="color:var(--brand);font-weight:600">crie a pelada</a> (data e horário).</div></div>`}
+          <div class="grow small muted">Para montar a lista da semana, <a href="#/grupos/${GID}" style="color:var(--brand);font-weight:600">crie a pelada</a> (data e horário).</div></div>`}
 
     <div style="position:relative;margin-bottom:10px">
       <span style="position:absolute;left:14px;top:15px;color:var(--text-3)">${ic('search')}</span>
@@ -153,7 +153,7 @@ async function salvarJogador() {
   if (JG.foto !== undefined) corpo.foto = JG.foto;
   try {
     if (JG.editandoId) await PUT(`/jogadores/${JG.editandoId}`, corpo);
-    else await POST('/jogadores', corpo);
+    else await POST(`/jogadores?grupoId=${GID}`, corpo);
     fecharSheet();
     toast(JG.editandoId ? 'Jogador atualizado!' : 'Jogador cadastrado!');
     await telaJogadores();

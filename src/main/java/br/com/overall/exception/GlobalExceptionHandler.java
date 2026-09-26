@@ -1,6 +1,8 @@
 package br.com.overall.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -14,6 +16,8 @@ import java.util.List;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(RegraDeNegocioException.class)
     public ResponseEntity<ApiErrorResponse> tratarRegraNegocio(RegraDeNegocioException ex, HttpServletRequest req) {
@@ -39,6 +43,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> tratarFallback(Exception ex, HttpServletRequest req) {
+        // Não vaza detalhe interno na resposta, mas precisa ficar no log do servidor para investigar.
+        log.error("Erro inesperado em {} {}", req.getMethod(), req.getRequestURI(), ex);
         return montar(HttpStatus.INTERNAL_SERVER_ERROR, "ERRO_INTERNO", "Ocorreu um erro inesperado.", req, null);
     }
 
