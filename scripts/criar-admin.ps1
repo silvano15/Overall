@@ -25,5 +25,10 @@ public class HashSenha {
 $hash = (& $java -cp "$crypto;$jcl" $tmp $senha | Select-Object -Last 1).Trim()
 Remove-Item $tmp -Force
 
-Write-Host "`nCole este comando no SQL Editor do TiDB (banco Overall) e execute:`n" -ForegroundColor Green
-"INSERT INTO usuario (username, senha, nome_completo, perfil, ativo) VALUES ('admin', '$hash', 'Administrador da Pelada', 'ADMIN', TRUE) ON DUPLICATE KEY UPDATE senha = VALUES(senha), ativo = TRUE;"
+$sql = "INSERT INTO usuario (username, senha, nome_completo, perfil, ativo) VALUES ('admin', '$hash', 'Administrador da Pelada', 'ADMIN', TRUE) ON DUPLICATE KEY UPDATE senha = VALUES(senha), ativo = TRUE;"
+$arquivo = Join-Path $env:USERPROFILE "admin.sql"
+Set-Content -Encoding ascii $arquivo $sql
+
+Write-Host "`nPronto. SQL salvo em: $arquivo" -ForegroundColor Green
+Write-Host "Rode o comando abaixo, trocando HOST e USUARIO pelos dados do TiDB (a senha do banco ele pede na hora):`n"
+Write-Host "& 'C:Program FilesMySQLMySQL Server 26.7inmysql.exe' -h HOST -P 4000 -u USUARIO -p --ssl-mode=REQUIRED Overall -e \"source $($arquivo -replace '\','/')\""
