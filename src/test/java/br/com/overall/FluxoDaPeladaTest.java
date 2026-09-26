@@ -651,4 +651,27 @@ class FluxoDaPeladaTest {
         chamar(delete("/grupos/" + vazio), null, 204);
     }
 
+
+    @Test @Order(20)
+    void excluirPeladaFinalizadaExigeSenhaERecalculaOOverall() throws Exception {
+        // sem senha, ou com senha errada: nada é apagado (400, não 401, para o app não achar que a sessão caiu)
+        erro(post("/peladas/" + peladaId + "/exclusao"), Map.of("senha", ""));
+        JsonNode e = erro(post("/peladas/" + peladaId + "/exclusao"), Map.of("senha", "errada"));
+        assertTrue(e.get("mensagem").asText().contains("Senha incorreta"), e.toString());
+        assertEquals("FINALIZADA", ok(get("/peladas/" + peladaId + "/resumo")).get("status").asText());
+
+        // antes: quem jogou tem overall diferente de 60 por causa dessa pelada
+        int mudados = 0;
+        for (JsonNode j : ok(get("/jogadores?grupoId=" + grupoId))) if (j.get("overall").asInt() != 60) mudados++;
+        assertTrue(mudados > 0);
+
+        chamar(post("/peladas/" + peladaId + "/exclusao"), Map.of("senha", "novaSenha123"), 204);
+
+        // a pelada some, e o overall de quem jogou volta ao que as demais peladas justificam
+        chamar(get("/peladas/" + peladaId + "/resumo"), null, 404);
+        for (JsonNode j : ok(get("/jogadores?grupoId=" + grupoId)))
+            if (j.get("id").asLong() == g1) assertEquals(60, j.get("overall").asInt(), "sem partidas, volta ao overall inicial");
+        chamar(post("/peladas/" + peladaId + "/exclusao"), Map.of("senha", "novaSenha123"), 404);
+    }
+
 }

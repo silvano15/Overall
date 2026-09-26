@@ -16,6 +16,8 @@ public interface EstatisticaRepository extends JpaRepository<EstatisticaPartida,
 
     boolean existsByJogadorId(Long jogadorId);
 
+    void deleteByPeladaId(Long peladaId);
+
     /** Totais por jogador dentro de um intervalo de datas (rankings mensal/anual/geral). */
     @Query("""
             select e.jogadorId,

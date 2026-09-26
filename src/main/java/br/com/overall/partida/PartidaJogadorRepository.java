@@ -17,6 +17,8 @@ public interface PartidaJogadorRepository extends JpaRepository<PartidaJogador, 
 
     boolean existsByJogadorId(Long jogadorId);
 
+    void deleteByPartidaId(Long partidaId);
+
     /** O jogador já participou de alguma partida desta pelada? */
     @Query("select count(pj) > 0 from PartidaJogador pj, Partida p "
             + "where pj.partidaId = p.id and p.peladaId = :peladaId and pj.jogadorId = :jogadorId")

@@ -508,7 +508,8 @@ async function telaResumo(view, id) {
           <div class="center"><div class="rank-val" style="line-height:1">${nota1(d.nota)}</div><div class="eyebrow" style="margin-top:3px">nota</div></div>
           ${finalizada && d.overallDepois != null ? `<div class="center" style="min-width:58px">${ovr(d.overallDepois)}<div style="margin-top:3px">${delta(d)}</div></div>` : ''}
         </div>`; }).join('') : '<div class="empty">Sem dados.</div>'}</div>
-    <a class="btn primary block lg" href="#/grupos/${GID}">Voltar</a>`);
+    <a class="btn primary block lg" href="#/grupos/${GID}">Voltar</a>
+    <button class="btn danger block mt-3" onclick="abrirExclusaoPelada(${id}, '${esc(fmtDataLonga(r.dataJogo))}')">${ic('trash')} Excluir esta pelada</button>`);
 
   if (finalizada && mvp && window.__confeteResumo !== id) {
     window.__confeteResumo = id;
@@ -569,4 +570,32 @@ function desenharPaginaTimes(p) {
       <div class="small muted mt-3">Goleiros ficam fora dos times: antes de cada partida você escolhe quem vai para o gol de cada lado (qualquer jogador da lista pode agarrar).</div></div>
     <div class="card tight small muted">${ic('info', 14)} Não gostou da divisão? Volte, e toque em <b>Sortear de novo</b>. Depois de iniciar a pelada, os times ficam fixos.</div>
     <button class="btn primary block lg" onclick="iniciarPelada()">${ic('play')} Iniciar pelada</button>`);
+}
+
+// ---------- excluir pelada de vez (histórico): exige a senha, para ninguém apagar no celular emprestado ----------
+
+function abrirExclusaoPelada(id, dataTxt) {
+  abrirSheet('Excluir pelada', `
+    <div class="banner" style="margin-bottom:12px"><h3>${ic('alert', 20)} Isso não pode ser desfeito</h3>
+      <div class="muted small">A pelada de <b>${dataTxt}</b> será apagada com todas as partidas, gols e estatísticas. O overall dos jogadores é recalculado sem ela.</div></div>
+    <label class="field"><span>Sua senha (para confirmar)</span><input type="password" id="ex-senha" autocomplete="current-password"></label>
+    <button class="btn danger block lg" id="ex-btn" onclick="confirmarExclusaoPelada(${id})">${ic('trash')} Excluir definitivamente</button>`);
+  setTimeout(() => { const n = document.getElementById('ex-senha'); if (n) n.focus(); }, 60);
+}
+
+async function confirmarExclusaoPelada(id) {
+  const senha = document.getElementById('ex-senha').value;
+  if (!senha) return toast('Digite a senha para confirmar.', 'error');
+  const btn = document.getElementById('ex-btn');
+  btn.disabled = true;
+  try {
+    await POST(`/peladas/${id}/exclusao`, { senha });
+    fecharSheet();
+    toast('Pelada excluída.');
+    location.hash = `#/grupos/${GID}`;
+  } catch (e) {
+    btn.disabled = false;
+    erroToast(e);
+    const c = document.getElementById('ex-senha'); if (c) { c.value = ''; c.focus(); }
+  }
 }

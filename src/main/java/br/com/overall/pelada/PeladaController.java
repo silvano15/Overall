@@ -1,5 +1,6 @@
 package br.com.overall.pelada;
 
+import br.com.overall.pelada.dto.ExclusaoPeladaRequest;
 import br.com.overall.pelada.dto.PeladaListaItem;
 import br.com.overall.pelada.dto.PeladaRequest;
 import br.com.overall.pelada.dto.PeladaResponse;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -26,8 +28,11 @@ public class PeladaController {
 
     private final PeladaService peladaService;
     private final PartidaService partidaService;
+    private final ExclusaoPeladaService exclusaoService;
 
-    public PeladaController(PeladaService peladaService, PartidaService partidaService) {
+    public PeladaController(PeladaService peladaService, PartidaService partidaService,
+                            ExclusaoPeladaService exclusaoService) {
+        this.exclusaoService = exclusaoService;
         this.peladaService = peladaService;
         this.partidaService = partidaService;
     }
@@ -51,6 +56,14 @@ public class PeladaController {
     @Operation(summary = "Exclui uma pelada sem partidas")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
         peladaService.excluir(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @PostMapping("/{id}/exclusao")
+    @Operation(summary = "Apaga a pelada de vez (inclusive finalizada), confirmando com a senha do usuário logado")
+    public ResponseEntity<Void> excluirDeVez(@PathVariable Long id, @Valid @RequestBody ExclusaoPeladaRequest req,
+                                             Authentication auth) {
+        exclusaoService.excluir(id, auth.getName(), req.senha());
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
