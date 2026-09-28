@@ -1,0 +1,665 @@
+AUDITORIA GERAL E PLANO DE EVOLUÇÃO DO PROJETO OVERALL
+=========================================================
+
+Repositório: Overall-Project01/Overall
+Data do relatório: 28/09/2026
+Objetivo: documentar todos os passos necessários para evoluir o sistema Overall do estado atual para uma versão robusta, segura, operável e pronta para produção.
+
+
+1. RESUMO DO PROJETO
+====================
+
+O Overall é um sistema web para o organizador de uma pelada gerenciar:
+
+- grupos de jogadores;
+- cadastro, edição, arquivamento e reativação de jogadores;
+- lista semanal de participantes;
+- sorteio aleatório ou balanceado por Overall;
+- formação de times;
+- partidas ao vivo;
+- cronômetro, pausa, retomada e encerramento;
+- gols e assistências;
+- substituições e reforços;
+- escolha de goleiros;
+- disputas de pênaltis;
+- cálculo de notas por partida;
+- cálculo de Overall entre 40 e 99;
+- rankings mensal, anual e geral;
+- rede de conexões entre assistentes e autores de gols.
+
+Stack identificada:
+
+- Java 17;
+- Spring Boot 3.2.5;
+- Spring Web;
+- Spring Data JPA/Hibernate;
+- Spring Security;
+- JWT;
+- BCrypt;
+- MySQL 8;
+- Flyway;
+- H2 nos testes;
+- frontend em HTML, CSS e JavaScript puro;
+- Docker e Docker Compose;
+- Swagger/OpenAPI.
+
+
+2. ESTIMATIVA DO ESTADO ATUAL
+=============================
+
+A estimativa atual não representa somente a quantidade de funcionalidades implementadas. Ela considera também segurança, testes, operação, escalabilidade, manutenção e prontidão para produção.
+
+- Objetivo e proposta de valor: 90%
+- Funcionalidades principais: 80%
+- Regras de negócio: 82%
+- Organização e qualidade do código: 72%
+- Testes: 75%
+- Frontend e experiência mobile: 74%
+- Segurança e hardening: 55%
+- Infraestrutura de produção: 45%
+- Escalabilidade: 45%
+- Observabilidade e operação: 35%
+
+Estimativa geral atual: aproximadamente 70% a 72%.
+
+O projeto já possui um núcleo funcional forte. Os 28% a 30% restantes concentram principalmente riscos de produção, segurança, confiabilidade operacional, automação, observabilidade, escalabilidade e amadurecimento do produto.
+
+
+3. PRIORIDADES DE EXECUÇÃO
+==========================
+
+Prioridade P0 - crítica, deve ser executada antes de produção:
+
+- remover credenciais e segredos padrão de ambientes produtivos;
+- impedir uso de banco com usuário root pela aplicação;
+- revisar autenticação JWT e expiração dos tokens;
+- proteger ou desabilitar Swagger em produção;
+- criar backup e restore do banco;
+- configurar HTTPS/TLS;
+- criar pipeline mínimo de build e testes;
+- corrigir configurações inseguras do Docker Compose;
+- criar logs e monitoramento de erros;
+- garantir que todos os testes passem em ambiente limpo.
+
+Prioridade P1 - alta, necessária para uma versão confiável:
+
+- rate limiting e proteção contra brute force;
+- auditoria das ações administrativas;
+- melhoria da cobertura de testes;
+- testes de segurança;
+- health checks e readiness/liveness;
+- revisão de queries e índices;
+- prevenção de consultas N+1;
+- padronização de erros e validações;
+- ambientes separados de desenvolvimento, homologação e produção;
+- documentação técnica e operacional.
+
+Prioridade P2 - importante para crescimento:
+
+- cache de rankings e consultas frequentes;
+- Redis ou solução equivalente, se os testes de carga justificarem;
+- melhoria do frontend e modularização do JavaScript;
+- armazenamento externo de fotos;
+- múltiplos administradores e permissões;
+- relatórios e exportações;
+- notificações;
+- observabilidade de negócio.
+
+Prioridade P3 - evolução do produto:
+
+- aplicativo mobile ou PWA avançado;
+- calendário completo;
+- comparativos históricos;
+- integrações externas;
+- dashboards avançados;
+- relatórios analíticos;
+- recursos sociais e colaboração entre organizadores.
+
+
+4. SEGURANÇA E CIBERSEGURANÇA
+=============================
+
+4.1. Segredos e configurações
+
+[ ] Remover o segredo JWT padrão de uso possível em produção no application.yml.
+[ ] Tornar JWT_SECRET obrigatório fora do perfil de desenvolvimento.
+[ ] Falhar a inicialização caso JWT_SECRET não exista em produção.
+[ ] Garantir que JWT_SECRET tenha tamanho e entropia adequados.
+[ ] Não armazenar senhas, tokens ou chaves no repositório.
+[ ] Criar arquivo .env.example sem valores reais.
+[ ] Documentar quais variáveis são obrigatórias por ambiente.
+[ ] Utilizar Secret Manager, Vault, secrets do provedor cloud ou equivalente.
+[ ] Revisar histórico do Git em busca de segredos antigos.
+[ ] Rotacionar qualquer segredo que tenha sido exposto.
+
+4.2. Banco de dados
+
+[ ] Criar usuário exclusivo para a aplicação.
+[ ] Remover o uso de root pela aplicação em produção.
+[ ] Conceder somente os privilégios necessários ao usuário da aplicação.
+[ ] Usar senha forte e exclusiva para o banco.
+[ ] Restringir a porta do MySQL à rede privada.
+[ ] Não expor MySQL publicamente.
+[ ] Separar credenciais do banco de desenvolvimento e produção.
+[ ] Ativar TLS entre aplicação e banco quando suportado pela infraestrutura.
+[ ] Validar o comportamento de sslMode em cada ambiente.
+[ ] Remover ou corrigir healthcheck que dependa de senha fixa.
+[ ] Criar política de backup criptografado.
+[ ] Testar restauração do backup periodicamente.
+
+4.3. JWT e autenticação
+
+[ ] Definir claramente o tempo de vida dos access tokens.
+[ ] Avaliar redução do token de 30 dias para período menor.
+[ ] Implementar refresh tokens seguros, se a experiência exigir sessões longas.
+[ ] Implementar rotação de refresh tokens.
+[ ] Implementar revogação de tokens em logout, troca de senha ou incidente.
+[ ] Adicionar identificador único do token, como jti, quando necessário.
+[ ] Invalidar sessões após alteração de senha.
+[ ] Verificar status ativo do usuário em todas as autenticações.
+[ ] Evitar mensagens de login que permitam enumeração de usuários.
+[ ] Implementar bloqueio temporário após várias tentativas inválidas.
+[ ] Implementar rate limiting para /auth/login.
+[ ] Avaliar MFA para contas administrativas.
+[ ] Registrar tentativas de login bem-sucedidas e falhas relevantes.
+
+4.4. Autorização
+
+[ ] Revisar todas as rotas para garantir autorização no servidor.
+[ ] Confirmar que o grupoId informado pertence ao usuário autenticado.
+[ ] Confirmar que recursos de um grupo não podem ser acessados por outro grupo.
+[ ] Testar IDOR/BOLA em jogadores, peladas, partidas, rankings e grupos.
+[ ] Adicionar testes para acesso a IDs pertencentes a outro grupo.
+[ ] Evitar confiar em dados enviados pelo frontend para determinar permissões.
+[ ] Revisar o uso de @PreAuthorize e autorização por método.
+[ ] Preparar modelo de permissões para futuros administradores.
+
+4.5. CORS, headers e transporte
+
+[ ] Configurar ALLOWED_ORIGINS somente com domínios conhecidos.
+[ ] Nunca utilizar origem curinga junto com credenciais.
+[ ] Revisar allowed headers e reduzir a lista ao mínimo necessário.
+[ ] Configurar HTTPS obrigatório em produção.
+[ ] Configurar HSTS.
+[ ] Configurar Content-Security-Policy.
+[ ] Configurar X-Content-Type-Options.
+[ ] Configurar Referrer-Policy.
+[ ] Configurar frame-ancestors ou X-Frame-Options.
+[ ] Configurar política de cache para respostas sensíveis.
+[ ] Colocar a aplicação atrás de reverse proxy ou load balancer seguro.
+
+4.6. Swagger e documentação pública
+
+[ ] Desabilitar Swagger e OpenAPI em produção por padrão.
+[ ] Permitir Swagger somente em desenvolvimento e homologação.
+[ ] Caso seja mantido, proteger Swagger com autenticação.
+[ ] Não expor exemplos contendo credenciais reais.
+[ ] Revisar se dados sensíveis aparecem nos schemas ou mensagens de erro.
+
+4.7. Entrada de dados e upload de fotos
+
+[ ] Validar tamanho máximo da foto no backend.
+[ ] Validar MIME type real e assinatura do arquivo.
+[ ] Rejeitar HTML, SVG malicioso e conteúdo executável.
+[ ] Limitar dimensões da imagem.
+[ ] Remover metadados desnecessários.
+[ ] Evitar armazenar imagens grandes em MEDIUMTEXT/base64 no banco.
+[ ] Migrar fotos para object storage quando o volume crescer.
+[ ] Gerar nomes de arquivo não previsíveis.
+[ ] Não montar conteúdo enviado pelo usuário como HTML sem sanitização.
+[ ] Testar payloads XSS e data URLs maliciosas.
+
+4.8. Auditoria e incidentes
+
+[ ] Criar tabela de auditoria para ações administrativas.
+[ ] Registrar login, troca de senha, exclusão, finalização e alteração de partidas.
+[ ] Registrar usuário, data, IP, recurso e resultado da operação.
+[ ] Criar política de retenção de logs.
+[ ] Criar procedimento para incidente de segurança.
+[ ] Criar procedimento para revogação e rotação de segredos.
+[ ] Criar contato e responsabilidade para resposta a incidentes.
+
+
+5. BACKEND E QUALIDADE DO CÓDIGO
+================================
+
+[ ] Revisar todos os controllers e garantir contratos REST consistentes.
+[ ] Padronizar códigos HTTP usados em erros de validação e regra de negócio.
+[ ] Garantir que erros não retornem stack trace ou detalhes internos.
+[ ] Padronizar ApiErrorResponse com código, mensagem e correlationId.
+[ ] Criar correlationId por requisição.
+[ ] Adicionar logs estruturados com contexto.
+[ ] Evitar logs de senha, token, foto ou dados pessoais desnecessários.
+[ ] Revisar injeção de dependências e remover Autowired onde não for necessário.
+[ ] Revisar classes de serviço muito grandes.
+[ ] Separar regras de cálculo, persistência e orquestração quando houver acoplamento.
+[ ] Criar objetos de valor para regras importantes do domínio.
+[ ] Documentar transições de estado de Pelada e Partida.
+[ ] Documentar invariantes do domínio.
+[ ] Garantir transações atômicas nas operações críticas.
+[ ] Revisar concorrência em iniciar, pausar, encerrar e registrar gols.
+[ ] Impedir dupla execução simultânea de finalização.
+[ ] Impedir duplo registro de gol por requisições repetidas.
+[ ] Avaliar idempotência para endpoints sensíveis.
+[ ] Garantir consistência caso uma operação falhe no meio.
+[ ] Revisar tratamento de fusos horários.
+[ ] Usar Clock injetável também em todos os pontos que dependem de horário.
+[ ] Evitar uso direto de LocalDate.now() fora da configuração de Clock.
+[ ] Definir política para horário de verão e mudança de timezone.
+
+
+6. REGRAS DE NEGÓCIO E LÓGICA
+=============================
+
+[ ] Documentar formalmente todos os estados possíveis de uma pelada.
+[ ] Documentar formalmente todos os estados possíveis de uma partida.
+[ ] Criar tabela de transições permitidas e proibidas.
+[ ] Garantir que uma partida não possa ser iniciada duas vezes.
+[ ] Garantir que uma partida encerrada não aceite novos gols.
+[ ] Garantir que uma partida pausada não acumule tempo indevidamente.
+[ ] Garantir que o cronômetro seja consistente após reinício da aplicação.
+[ ] Garantir que apenas participantes válidos possam fazer gols ou assistências.
+[ ] Garantir que assistente não seja o próprio autor.
+[ ] Garantir que jogador substituído não continue apto a registrar eventos em campo.
+[ ] Garantir consistência de goleiros e clean sheets.
+[ ] Validar times de tamanhos diferentes em todos os modos de pênaltis.
+[ ] Testar empate por tempo, encerramento manual e empate por pênaltis.
+[ ] Validar que pênaltis não sejam contados como gols estatísticos.
+[ ] Garantir que exclusões recalculam corretamente o histórico.
+[ ] Garantir que operações repetidas sejam idempotentes quando esperado.
+[ ] Definir regras para alterações retroativas em partidas finalizadas.
+[ ] Definir se o administrador pode corrigir dados históricos.
+[ ] Registrar alterações históricas para auditoria.
+[ ] Revisar fórmulas de nota com usuários reais.
+[ ] Revisar fórmulas de Overall com amostras reais.
+[ ] Validar se os pesos de goleiro representam o objetivo do produto.
+[ ] Criar testes de propriedades para o sorteio balanceado.
+[ ] Garantir que o sorteio não favoreça ou prejudique sistematicamente jogadores.
+[ ] Criar simulações estatísticas do algoritmo de sorteio.
+
+
+7. BANCO DE DADOS E PERSISTÊNCIA
+================================
+
+[ ] Revisar todas as foreign keys e regras de exclusão.
+[ ] Definir explicitamente quando usar CASCADE, RESTRICT ou soft delete.
+[ ] Criar índices para filtros por grupo, pelada, status e data.
+[ ] Criar índices compostos de acordo com as consultas reais.
+[ ] Verificar planos de execução das consultas principais.
+[ ] Revisar consultas dos rankings mensal, anual e geral.
+[ ] Revisar consultas da rede de assistências.
+[ ] Detectar consultas N+1 geradas pelo JPA.
+[ ] Usar fetch join, EntityGraph ou consultas específicas quando necessário.
+[ ] Definir paginação para listas grandes.
+[ ] Evitar retornar coleções ilimitadas.
+[ ] Criar limites máximos para jogadores, partidas e eventos.
+[ ] Avaliar particionamento futuro da tabela estatistica_partida.
+[ ] Definir política de retenção e arquivamento de dados.
+[ ] Criar migrations para todas as alterações de schema.
+[ ] Testar migrations em banco vazio.
+[ ] Testar migrations em banco com dados reais representativos.
+[ ] Testar rollback operacional, mesmo que o Flyway não faça rollback automático.
+[ ] Documentar versão compatível do MySQL.
+[ ] Remover dados de bootstrap inseguros das migrations de produção.
+[ ] Separar dados de seed de schema estrutural.
+[ ] Garantir que dados iniciais administrativos sejam criados de forma segura.
+
+
+8. TESTES
+=========
+
+[ ] Executar mvn test em ambiente limpo.
+[ ] Corrigir qualquer teste dependente de ordem ou estado compartilhado quando possível.
+[ ] Manter o teste de fluxo completo como teste de aceitação.
+[ ] Adicionar testes unitários para todos os serviços.
+[ ] Adicionar testes unitários para todos os calculadores.
+[ ] Adicionar testes para limites mínimo e máximo de Overall.
+[ ] Adicionar testes para arredondamento e casas decimais.
+[ ] Adicionar testes para notas com valores extremos.
+[ ] Adicionar testes para jogadores arquivados e reativados.
+[ ] Adicionar testes para isolamento entre grupos.
+[ ] Adicionar testes para autorização por recurso.
+[ ] Adicionar testes para JWT expirado, inválido e adulterado.
+[ ] Adicionar testes para ausência de token.
+[ ] Adicionar testes para brute force e rate limiting.
+[ ] Adicionar testes para payloads malformados.
+[ ] Adicionar testes para fotos inválidas e grandes.
+[ ] Adicionar testes de concorrência em eventos de partidas.
+[ ] Adicionar testes de idempotência.
+[ ] Adicionar testes de migrations em MySQL real, além de H2.
+[ ] Adicionar testes de contrato da API.
+[ ] Adicionar testes de regressão para cada bug corrigido.
+[ ] Adicionar testes de frontend para fluxos críticos.
+[ ] Adicionar testes E2E em navegador real.
+[ ] Definir cobertura mínima, por exemplo 80% no domínio crítico.
+[ ] Configurar JaCoCo ou ferramenta equivalente.
+[ ] Publicar relatório de cobertura no CI.
+[ ] Impedir merge quando testes críticos falharem.
+
+
+9. FRONTEND
+===========
+
+[ ] Revisar todas as telas em celulares de tamanhos diferentes.
+[ ] Testar Android, iOS e navegadores principais.
+[ ] Testar rede lenta e perda temporária de conexão.
+[ ] Implementar tratamento consistente de 401 e 403.
+[ ] Implementar renovação ou redirecionamento de sessão expirada.
+[ ] Evitar perda de estado durante recarregamento da página.
+[ ] Mostrar feedback para ações demoradas.
+[ ] Impedir duplo clique em operações críticas.
+[ ] Adicionar estados de loading, vazio e erro.
+[ ] Melhorar acessibilidade e navegação por teclado.
+[ ] Revisar contraste em tema claro e escuro.
+[ ] Garantir suporte a prefers-reduced-motion.
+[ ] Adicionar labels e descrições para leitores de tela.
+[ ] Revisar foco após modais e mudanças de tela.
+[ ] Validar campos antes do envio e também no backend.
+[ ] Melhorar mensagens de erro para o usuário.
+[ ] Não exibir mensagens técnicas internas.
+[ ] Reduzir tamanho de JavaScript e CSS para produção.
+[ ] Habilitar compressão HTTP.
+[ ] Aplicar cache adequado para assets versionados.
+[ ] Modularizar o JavaScript se o volume continuar crescendo.
+[ ] Criar testes automatizados de interface.
+[ ] Testar operação da partida ao vivo com atualização da tela.
+[ ] Avaliar WebSocket ou Server-Sent Events se atualizações em tempo real forem necessárias.
+[ ] Definir comportamento quando dois dispositivos acessarem a mesma partida.
+
+
+10. INFRAESTRUTURA E DEPLOY
+===========================
+
+[ ] Criar ambientes dev, test, staging e production.
+[ ] Criar perfis Spring separados por ambiente.
+[ ] Criar Dockerfile com build reprodutível.
+[ ] Usar imagem runtime mínima e não-root.
+[ ] Executar o processo Java com usuário sem privilégios.
+[ ] Fixar versões de imagens Docker.
+[ ] Fazer scan de vulnerabilidades nas imagens.
+[ ] Criar docker-compose para desenvolvimento sem credenciais fixas.
+[ ] Criar documentação de instalação do zero.
+[ ] Criar CI para compilação.
+[ ] Criar CI para testes unitários e integração.
+[ ] Criar CI para análise estática.
+[ ] Criar CI para scan de dependências.
+[ ] Criar CI para scan de secrets.
+[ ] Criar CI para build da imagem Docker.
+[ ] Publicar imagem em registry privado ou controlado.
+[ ] Criar CD para homologação.
+[ ] Criar aprovação manual para produção.
+[ ] Criar estratégia de rollback.
+[ ] Criar migrations executadas de forma controlada no deploy.
+[ ] Definir política de zero downtime, se necessária.
+[ ] Configurar reverse proxy.
+[ ] Configurar domínio e certificado TLS.
+[ ] Configurar firewall.
+[ ] Configurar limites de conexão.
+[ ] Configurar timeout de requisições.
+[ ] Configurar limites de memória da JVM de forma observável.
+[ ] Revisar -Xmx300m conforme a memória real do ambiente.
+[ ] Configurar health endpoint seguro.
+[ ] Configurar readiness e liveness.
+[ ] Garantir que o serviço não receba tráfego antes do banco estar pronto.
+
+
+11. OBSERVABILIDADE E OPERAÇÃO
+==============================
+
+[ ] Adicionar Spring Boot Actuator.
+[ ] Expor somente endpoints de health necessários.
+[ ] Proteger endpoints de métricas.
+[ ] Coletar métricas de latência.
+[ ] Coletar métricas de erros por endpoint.
+[ ] Coletar métricas de autenticação.
+[ ] Coletar métricas de partidas e eventos.
+[ ] Coletar métricas de consultas lentas.
+[ ] Configurar logs em formato estruturado JSON.
+[ ] Adicionar correlationId nos logs.
+[ ] Centralizar logs.
+[ ] Configurar alertas de erro e indisponibilidade.
+[ ] Configurar alertas de banco e armazenamento.
+[ ] Configurar tracing distribuído se houver mais de um serviço.
+[ ] Criar dashboard operacional.
+[ ] Criar dashboard de negócio.
+[ ] Definir SLI e SLO.
+[ ] Definir tempo máximo aceitável de recuperação.
+[ ] Definir perda máxima aceitável de dados.
+[ ] Criar runbook para incidentes comuns.
+[ ] Criar runbook para banco indisponível.
+[ ] Criar runbook para token ou segredo comprometido.
+[ ] Criar runbook para rollback.
+[ ] Realizar simulado de recuperação.
+
+
+12. ESCALABILIDADE
+==================
+
+[ ] Medir o volume esperado de grupos, jogadores, partidas e eventos.
+[ ] Definir número esperado de acessos simultâneos.
+[ ] Definir carga de pico durante uma pelada.
+[ ] Criar testes de carga com cenários reais.
+[ ] Medir o tempo de resposta dos rankings.
+[ ] Medir o tempo de resposta do resumo da pelada.
+[ ] Medir o tempo de resposta das operações ao vivo.
+[ ] Otimizar queries com maior custo.
+[ ] Adicionar paginação nas consultas de histórico.
+[ ] Adicionar cache para rankings que não mudam a cada requisição.
+[ ] Avaliar Redis para cache e rate limiting.
+[ ] Evitar recalcular histórico inteiro sem necessidade.
+[ ] Avaliar processamento assíncrono para recálculos mais pesados.
+[ ] Criar locks ou controle de concorrência para uma pelada ativa.
+[ ] Definir estratégia para múltiplas instâncias da aplicação.
+[ ] Remover dependência de estado local do processo.
+[ ] Garantir que qualquer sessão necessária esteja em armazenamento compartilhado.
+[ ] Configurar pool de conexões do banco.
+[ ] Testar comportamento quando o banco atingir limite de conexões.
+[ ] Avaliar read replicas somente se o volume justificar.
+[ ] Avaliar particionamento e arquivamento para histórico muito grande.
+
+
+13. BACKUP, CONTINUIDADE E RECUPERAÇÃO
+======================================
+
+[ ] Definir frequência de backup.
+[ ] Fazer backup completo do MySQL.
+[ ] Fazer backup incremental ou binlog quando necessário.
+[ ] Criptografar backups.
+[ ] Armazenar cópias em local separado.
+[ ] Definir tempo de retenção.
+[ ] Testar restore mensalmente.
+[ ] Documentar restauração passo a passo.
+[ ] Definir RPO.
+[ ] Definir RTO.
+[ ] Criar plano para perda total da máquina.
+[ ] Criar plano para corrupção do banco.
+[ ] Criar plano para exclusão acidental de dados.
+[ ] Criar plano para comprometimento de credenciais.
+
+
+14. DOCUMENTAÇÃO
+================
+
+[ ] Atualizar README com execução local completa.
+[ ] Documentar pré-requisitos.
+[ ] Documentar todas as variáveis de ambiente.
+[ ] Documentar criação do primeiro administrador com segurança.
+[ ] Documentar execução via Docker.
+[ ] Documentar execução dos testes.
+[ ] Documentar estrutura do projeto.
+[ ] Criar ARCHITECTURE.md.
+[ ] Criar SECURITY.md.
+[ ] Criar OPERATIONS.md.
+[ ] Criar DEPLOYMENT.md.
+[ ] Criar CONTRIBUTING.md.
+[ ] Criar CHANGELOG.md.
+[ ] Documentar decisões arquiteturais.
+[ ] Documentar fórmulas de nota e Overall.
+[ ] Documentar algoritmo de sorteio.
+[ ] Documentar estados e transições de partidas.
+[ ] Documentar endpoints e exemplos sem dados sensíveis.
+[ ] Documentar plano de backup e recuperação.
+
+
+15. EVOLUÇÃO DO PRODUTO
+=======================
+
+[ ] Permitir mais de um administrador por grupo.
+[ ] Criar perfis e permissões diferentes.
+[ ] Permitir convite ou acesso controlado ao grupo.
+[ ] Criar calendário de peladas.
+[ ] Criar confirmação de presença.
+[ ] Criar lista de espera.
+[ ] Criar notificações de horário e escalação.
+[ ] Criar histórico visual por jogador.
+[ ] Criar comparativo entre jogadores.
+[ ] Criar exportação CSV/PDF.
+[ ] Criar relatórios de artilharia e desempenho.
+[ ] Criar dashboard do grupo.
+[ ] Criar filtros avançados de ranking.
+[ ] Permitir regras configuráveis por grupo.
+[ ] Permitir pesos de Overall configuráveis com histórico de versões.
+[ ] Criar mecanismo para correção de partidas finalizadas.
+[ ] Registrar quem alterou dados históricos.
+[ ] Avaliar PWA para instalação no celular.
+[ ] Avaliar aplicativo nativo somente após validar uso e demanda.
+[ ] Avaliar notificações push.
+
+
+16. PLANO DE EXECUÇÃO RECOMENDADO
+=================================
+
+FASE 1 - Diagnóstico técnico e correções críticas
+
+[ ] Criar branch de auditoria/hardening.
+[ ] Executar build limpo.
+[ ] Executar todos os testes.
+[ ] Auditar dependências vulneráveis.
+[ ] Auditar histórico por segredos.
+[ ] Remover defaults inseguros.
+[ ] Corrigir Docker Compose e usuário do banco.
+[ ] Restringir Swagger em produção.
+[ ] Criar .env.example.
+[ ] Criar profiles de ambiente.
+
+Critério de conclusão: aplicação compila, testes passam e não existem credenciais de produção no código.
+
+FASE 2 - Segurança de produção
+
+[ ] Rate limiting.
+[ ] Proteção contra brute force.
+[ ] Auditoria.
+[ ] Headers de segurança.
+[ ] HTTPS.
+[ ] Revisão de CORS.
+[ ] Revisão de autorização por recurso.
+[ ] Testes de IDOR/BOLA.
+[ ] Validação completa de fotos.
+[ ] Política de senha.
+[ ] Revogação ou rotação de tokens.
+
+Critério de conclusão: ameaças críticas identificadas na auditoria estão mitigadas ou formalmente aceitas.
+
+FASE 3 - Confiabilidade e testes
+
+[ ] Cobertura de testes.
+[ ] Testes de autorização.
+[ ] Testes de concorrência.
+[ ] Testes de migrations em MySQL.
+[ ] Testes de contrato.
+[ ] Testes E2E.
+[ ] Testes de carga iniciais.
+[ ] Quality gate no CI.
+
+Critério de conclusão: fluxos críticos possuem testes automatizados e o merge bloqueia regressões importantes.
+
+FASE 4 - Deploy e operação
+
+[ ] Pipeline CI/CD.
+[ ] Container não-root.
+[ ] Health checks.
+[ ] Logs estruturados.
+[ ] Métricas.
+[ ] Alertas.
+[ ] Backup automático.
+[ ] Restore testado.
+[ ] Runbooks.
+[ ] Staging.
+[ ] Rollback.
+
+Critério de conclusão: o sistema pode ser implantado, monitorado e recuperado sem intervenção improvisada.
+
+FASE 5 - Desempenho e escala
+
+[ ] Teste de carga.
+[ ] Otimização de consultas.
+[ ] Índices.
+[ ] Paginação.
+[ ] Cache.
+[ ] Controle de concorrência.
+[ ] Pool de conexões.
+[ ] Avaliação de múltiplas instâncias.
+
+Critério de conclusão: o sistema atende a carga-alvo documentada com margem de segurança.
+
+FASE 6 - Evolução do produto
+
+[ ] Múltiplos administradores.
+[ ] Permissões.
+[ ] Notificações.
+[ ] Calendário.
+[ ] Relatórios.
+[ ] Exportações.
+[ ] PWA ou aplicação móvel, se validado.
+
+Critério de conclusão: funcionalidades de negócio prioritárias foram validadas com usuários reais.
+
+
+17. CRITÉRIOS PARA CONSIDERAR O PROJETO EM 100%
+===============================================
+
+O projeto só deve ser considerado 100% concluído quando todos os itens abaixo forem verdadeiros:
+
+[ ] O sistema possui objetivo e escopo documentados.
+[ ] Todos os fluxos principais funcionam em ambiente limpo.
+[ ] Todos os testes críticos passam automaticamente.
+[ ] Não existem segredos ou credenciais de produção no repositório.
+[ ] O banco utiliza usuário de aplicação com privilégios mínimos.
+[ ] HTTPS está habilitado.
+[ ] CORS e headers estão configurados para o ambiente real.
+[ ] Login possui rate limiting e proteção contra abuso.
+[ ] Recursos estão protegidos contra acesso entre grupos.
+[ ] Swagger está controlado em produção.
+[ ] Logs não expõem informações sensíveis.
+[ ] Existe auditoria para ações administrativas.
+[ ] Existem backups automáticos e restores testados.
+[ ] Existem métricas, alertas e dashboards.
+[ ] Existe pipeline CI/CD.
+[ ] Existe rollback documentado.
+[ ] Existe ambiente de homologação.
+[ ] A aplicação suporta a carga de usuários esperada.
+[ ] Queries críticas foram medidas e otimizadas.
+[ ] Não existem problemas críticos de concorrência.
+[ ] O frontend foi validado em dispositivos móveis reais.
+[ ] Acessibilidade mínima foi validada.
+[ ] Documentação técnica e operacional está atualizada.
+[ ] RPO e RTO foram definidos.
+[ ] O produto foi validado com usuários reais.
+
+
+18. CONCLUSÃO
+=============
+
+O Overall possui uma base funcional forte e uma lógica de negócio diferenciada. O caminho até 100% não consiste em reescrever todo o projeto. O caminho recomendado é preservar o núcleo atual e executar uma etapa organizada de hardening, testes, segurança, operação, observabilidade e escalabilidade.
+
+A ordem correta é:
+
+1. segurança e remoção de riscos críticos;
+2. testes e confiabilidade;
+3. deploy, backup e observabilidade;
+4. desempenho e escalabilidade;
+5. evolução de funcionalidades e experiência do usuário.
+
+Percentual estimado atual: 70% a 72%.
+
+Principal objetivo da próxima etapa: transformar um sistema funcional de MVP avançado em uma aplicação confiável, segura, monitorada, recuperável e preparada para crescimento.
