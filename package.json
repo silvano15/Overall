@@ -1,0 +1,46 @@
+{
+  "name": "overall-pelada",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "App para o ADM da pelada de fim de semana - Sistema mobile com cálculo de overall, estatísticas e gerenciamento ao vivo",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "prisma generate && tsc",
+    "start": "node dist/server.js",
+    "test": "tsx --test test/calculators.test.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "keywords": [
+    "pelada",
+    "futebol",
+    "overall",
+    "estatisticas",
+    "vercel"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.21.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^20.17.0",
+    "prisma": "^5.21.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

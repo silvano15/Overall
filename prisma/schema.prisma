@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique @db.VarChar(50)
+  senha        String   @db.VarChar(100)
+  nomeCompleto String   @map("nome_completo") @db.VarChar(120)
+  perfil       String   @default("ADMIN") @db.VarChar(30)
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+
+  @@map("usuario")
+}
+
+model GrupoPelada {
+  id        Int       @id @default(autoincrement())
+  nome      String    @db.VarChar(80)
+  criadoEm  DateTime  @default(now()) @map("criado_em")
+  jogadores Jogador[]
+  peladas   Pelada[]
+
+  @@map("grupo_pelada")
+}
+
+model Jogador {
+  id                  Int                  @id @default(autoincrement())
+  grupoId             Int                  @map("grupo_id")
+  nome                String               @db.VarChar(80)
+  foto                String?              @db.Text
+  goleiro             Boolean              @default(false)
+  ativo               Boolean              @default(true)
+  overall             Int                  @default(60)
+  criadoEm            DateTime             @default(now()) @map("criado_em")
+  grupo               GrupoPelada          @relation(fields: [grupoId], references: [id])
+  peladaJogadores     PeladaJogador[]
+  timePeladaJogadores TimePeladaJogador[]
+  partidaJogadores    PartidaJogador[]
+  golsAutor           Gol[]                @relation("GolAutor")
+  golsAssistente      Gol[]                @relation("GolAssistente")
+  substituicoesSaiu   Substituicao[]       @relation("SubSaiu")
+  substituicoesEntrou Substituicao[]       @relation("SubEntrou")
+  penaltis            Penalti[]
+  estatisticas        EstatisticaPartida[]
+
+  @@index([grupoId], name: "ix_jogador_grupo")
+  @@map("jogador")
+}
+
+model Pelada {
+  id                 Int                  @id @default(autoincrement())
+  grupoId            Int                  @map("grupo_id")
+  dataJogo           DateTime             @map("data_jogo") @db.Date
+  horaJogo           String               @map("hora_jogo") @db.VarChar(20)
+  status             String               @db.VarChar(20)
+  jogadoresPorTime   Int?                 @map("jogadores_por_time")
+  modoSorteio        String?              @map("modo_sorteio") @db.VarChar(20)
+  duracaoMinutos     Int?                 @map("duracao_minutos")
+  golsParaEncerrar   Int?                 @map("gols_para_encerrar")
+  criadoEm           DateTime             @default(now()) @map("criado_em")
+  finalizadaEm       DateTime?            @map("finalizada_em")
+  grupo              GrupoPelada          @relation(fields: [grupoId], references: [id])
+  jogadores          PeladaJogador[]
+  times              TimePelada[]
+  partidas           Partida[]
+  estatisticas       EstatisticaPartida[]
+
+  @@index([grupoId], name: "ix_pelada_grupo")
+  @@map("pelada")
+}
+
+model PeladaJogador {
+  id            Int      @id @default(autoincrement())
+  peladaId      Int      @map("pelada_id")
+  jogadorId     Int      @map("jogador_id")
+  overallAntes  Int?     @map("overall_antes")
+  overallDepois Int?     @map("overall_depois")
+  nota          Decimal? @db.Decimal(4, 2)
+  pelada        Pelada   @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  jogador       Jogador  @relation(fields: [jogadorId], references: [id], onDelete: Cascade)
+
+  @@unique([peladaId, jogadorId], name: "uk_pj")
+  @@map("pelada_jogador")
+}
+
+model TimePelada {
+  id                      Int                  @id @default(autoincrement())
+  peladaId                Int                  @map("pelada_id")
+  numero                  Int
+  pelada                  Pelada               @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  jogadores               TimePeladaJogador[]
+  partidasTimeA           Partida[]            @relation("PartidaTimeA")
+  partidasTimeB           Partida[]            @relation("PartidaTimeB")
+  partidasVencidas        Partida[]            @relation("PartidaVencedor")
+  partidasVencidasPenalti Partida[]            @relation("PartidaVencedorPenaltis")
+  partidaJogadores        PartidaJogador[]
+  gols                    Gol[]
+  substituicoes           Substituicao[]
+  penaltis                Penalti[]
+  estatisticas            EstatisticaPartida[]
+
+  @@unique([peladaId, numero], name: "uk_time_numero")
+  @@map("time_pelada")
+}
+
+model TimePeladaJogador {
+  id        Int        @id @default(autoincrement())
+  timeId    Int        @map("time_id")
+  jogadorId Int        @map("jogador_id")
+  time      TimePelada @relation(fields: [timeId], references: [id], onDelete: Cascade)
+  jogador   Jogador    @relation(fields: [jogadorId], references: [id], onDelete: Cascade)
+
+  @@unique([timeId, jogadorId], name: "uk_tpj")
+  @@map("time_pelada_jogador")
+}
+
+model Partida {
+  id                  Int                  @id @default(autoincrement())
+  peladaId            Int                  @map("pelada_id")
+  ordem               Int
+  timeAId             Int                  @map("time_a_id")
+  timeBId             Int                  @map("time_b_id")
+  duracaoSegundos     Int                  @map("duracao_segundos")
+  golsParaEncerrar    Int                  @map("gols_para_encerrar")
+  status              String               @db.VarChar(20)
+  acumuladoMs         BigInt               @default(0) @map("acumulado_ms")
+  retomadaEmMs        BigInt?              @map("retomada_em_ms")
+  vencedorId          Int?                 @map("vencedor_id")
+  vencedorPenaltisId  Int?                 @map("vencedor_penaltis_id")
+  penaltisModo        String?              @map("penaltis_modo") @db.VarChar(20)
+  penaltisRodadas     Int?                 @map("penaltis_rodadas")
+  encerradaEm         DateTime?            @map("encerrada_em")
+  pelada              Pelada               @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  timeA               TimePelada           @relation("PartidaTimeA", fields: [timeAId], references: [id])
+  timeB               TimePelada           @relation("PartidaTimeB", fields: [timeBId], references: [id])
+  vencedor            TimePelada?          @relation("PartidaVencedor", fields: [vencedorId], references: [id])
+  vencedorPenaltis    TimePelada?          @relation("PartidaVencedorPenaltis", fields: [vencedorPenaltisId], references: [id])
+  participantes       PartidaJogador[]
+  gols                Gol[]
+  substituicoes       Substituicao[]
+  penaltis            Penalti[]
+  estatisticas        EstatisticaPartida[]
+
+  @@unique([peladaId, ordem], name: "uk_partida_ordem")
+  @@map("partida")
+}
+
+model PartidaJogador {
+  id         Int        @id @default(autoincrement())
+  partidaId  Int        @map("partida_id")
+  timeId     Int        @map("time_id")
+  jogadorId  Int        @map("jogador_id")
+  goleiro    Boolean    @default(false)
+  emCampo    Boolean    @default(true) @map("em_campo")
+  partida    Partida    @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+  time       TimePelada @relation(fields: [timeId], references: [id], onDelete: Cascade)
+  jogador    Jogador    @relation(fields: [jogadorId], references: [id], onDelete: Cascade)
+
+  @@unique([partidaId, jogadorId], name: "uk_pjg")
+  @@map("partida_jogador")
+}
+
+model Gol {
+  id           Int         @id @default(autoincrement())
+  partidaId    Int         @map("partida_id")
+  timeId       Int         @map("time_id")
+  autorId      Int         @map("autor_id")
+  assistenteId Int?        @map("assistente_id")
+  tempoMs      BigInt      @map("tempo_ms")
+  criadoEm     DateTime    @default(now()) @map("criado_em")
+  partida      Partida     @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+  time         TimePelada  @relation(fields: [timeId], references: [id], onDelete: Cascade)
+  autor        Jogador     @relation("GolAutor", fields: [autorId], references: [id], onDelete: Cascade)
+  assistente   Jogador?    @relation("GolAssistente", fields: [assistenteId], references: [id], onDelete: SetNull)
+
+  @@map("gol")
+}
+
+model Substituicao {
+  id        Int        @id @default(autoincrement())
+  partidaId Int        @map("partida_id")
+  timeId    Int        @map("time_id")
+  saiuId    Int?       @map("saiu_id")
+  entrouId  Int        @map("entrou_id")
+  tempoMs   BigInt     @map("tempo_ms")
+  partida   Partida    @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+  time      TimePelada @relation(fields: [timeId], references: [id], onDelete: Cascade)
+  saiu      Jogador?   @relation("SubSaiu", fields: [saiuId], references: [id], onDelete: SetNull)
+  entrou    Jogador    @relation("SubEntrou", fields: [entrouId], references: [id], onDelete: Cascade)
+
+  @@map("substituicao")
+}
+
+model Penalti {
+  id         Int        @id @default(autoincrement())
+  partidaId  Int        @map("partida_id")
+  ordem      Int
+  timeId     Int        @map("time_id")
+  jogadorId  Int        @map("jogador_id")
+  convertido Boolean
+  partida    Partida    @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+  time       TimePelada @relation(fields: [timeId], references: [id], onDelete: Cascade)
+  jogador    Jogador    @relation(fields: [jogadorId], references: [id], onDelete: Cascade)
+
+  @@unique([partidaId, ordem], name: "uk_penalti_ordem")
+  @@map("penalti")
+}
+
+model EstatisticaPartida {
+  id           Int        @id @default(autoincrement())
+  partidaId    Int        @map("partida_id")
+  peladaId     Int        @map("pelada_id")
+  dataJogo     DateTime   @map("data_jogo") @db.Date
+  jogadorId    Int        @map("jogador_id")
+  timeId       Int        @map("time_id")
+  resultado    String     @db.VarChar(10)
+  gols         Int        @default(0)
+  assistencias Int        @default(0)
+  goleiro      Boolean    @default(false)
+  golsSofridos Int        @default(0) @map("gols_sofridos")
+  semSofrer    Boolean    @default(false) @map("sem_sofrer")
+  nota         Decimal    @db.Decimal(4, 2)
+  partida      Partida    @relation(fields: [partidaId], references: [id], onDelete: Cascade)
+  pelada       Pelada     @relation(fields: [peladaId], references: [id], onDelete: Cascade)
+  jogador      Jogador    @relation(fields: [jogadorId], references: [id], onDelete: Cascade)
+  time         TimePelada @relation(fields: [timeId], references: [id], onDelete: Cascade)
+
+  @@unique([partidaId, jogadorId], name: "uk_est")
+  @@index([dataJogo], name: "ix_est_data")
+  @@index([jogadorId], name: "ix_est_jogador")
+  @@index([peladaId], name: "ix_est_pelada")
+  @@map("estatistica_partida")
+}
