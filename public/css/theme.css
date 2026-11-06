@@ -241,7 +241,7 @@ body::before {
 
 .nav {
   position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 40;
-  width: min(calc(100% - 24px), 540px); height: var(--nav-h); padding: 6px; display: grid; grid-template-columns: repeat(4, 1fr);
+  width: min(calc(100% - 24px), 540px); height: var(--nav-h); padding: 6px; display: grid; grid-template-columns: repeat(var(--nav-cols, 4), 1fr);
   background: var(--glass); border: 1px solid var(--line-2); border-radius: 26px; box-shadow: var(--sh-2);
   -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%);
 }
@@ -250,9 +250,12 @@ body::before {
 .nav a .ic { width: 22px; height: 22px; transition: transform .35s var(--spring); }
 .nav a.active { color: var(--brand); }
 .nav a.active .ic { transform: translateY(-1px) scale(1.12); }
-.nav-pill { position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 12px) / 4); border-radius: 20px;
+.nav-pill { position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 12px) / var(--nav-cols, 4)); border-radius: 20px;
   background: var(--brand-soft); border: 1px solid var(--brand-line); transform: translateX(calc(var(--idx, 0) * 100%));
-  transition: transform .5s var(--spring); }
+  transition: transform .5s var(--spring), width .3s var(--spring); }
+.nav { transition: width .3s var(--spring); }
+.nav.mode-grupos { width: min(calc(100% - 48px), 260px); }
+.nav.mode-grupos [data-tab="jogadores"], .nav.mode-grupos [data-tab="rankings"] { display: none !important; }
 
 /* entrada das telas: cada bloco sobe em sequência */
 .rise { animation: rise .55s var(--ease) both; animation-delay: calc(var(--i, 0) * 55ms); }
@@ -298,7 +301,7 @@ body::before {
 .p-sub { display: block; font-size: 12px; color: var(--text-3); font-weight: 500; }
 
 /* ---------------------------------------------------------------- etapas da pelada (continuidade) */
-.steps { display: grid; grid-template-columns: repeat(4, 1fr); position: relative; margin: 6px 0 4px; }
+.steps { display: grid; grid-template-columns: repeat(var(--nav-cols, 4), 1fr); position: relative; margin: 6px 0 4px; }
 .steps::before { content: ""; position: absolute; left: 12.5%; right: 12.5%; top: 13px; height: 2px; background: var(--line-2); border-radius: 2px; }
 .steps::after { content: ""; position: absolute; left: 12.5%; top: 13px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--brand), var(--brand-2));
   width: calc(var(--p, 0) * 75%); transition: width .8s var(--ease); }

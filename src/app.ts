@@ -38,7 +38,7 @@ app.use('/rankings', rankingRouter);
 
 // Arquivos estáticos do frontend (para desenvolvimento local)
 const publicDir = path.resolve(__dirname, '../public');
-app.use(express.static(publicDir));
+app.use(express.static(publicDir, { maxAge: '1h', etag: true }));
 
 // Fallback para SPA (index.html)
 app.get('*', (req, res, next) => {

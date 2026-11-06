@@ -3,7 +3,21 @@
 const GR = { lista: [], editandoId: null };
 
 async function telaGrupos() {
-  GR.lista = await GET('/grupos');
+  if (!GR.lista.length) {
+    try {
+      const salvo = localStorage.getItem('overall_cache_grupos');
+      if (salvo) { GR.lista = JSON.parse(salvo); desenharGrupos(); }
+    } catch (e) {}
+  }
+  try {
+    const dados = await GET('/grupos');
+    GR.lista = dados;
+    try { localStorage.setItem('overall_cache_grupos', JSON.stringify(dados)); } catch (e) {}
+    desenharGrupos();
+    return;
+  } catch (e) {
+    if (!GR.lista.length) throw e;
+  }
   desenharGrupos();
 }
 

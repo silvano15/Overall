@@ -3,25 +3,74 @@
 /** Função de limpeza da tela atual (ex.: para o cronômetro da partida). */
 let aoSair = null;
 
+// Carregamento sob demanda (Google PRPL / Code-Splitting)
+const _modulosCarregados = new Set();
+function carregarModulo(arquivo) {
+  if (_modulosCarregados.has(arquivo)) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = `js/${arquivo}.js`;
+    s.onload = () => { _modulosCarregados.add(arquivo); resolve(); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+// Prefetch em segundo plano no tempo ocioso do navegador
+function prefetchModulos() {
+  const modulos = ['gfx', 'pelada', 'jogadores', 'partida', 'rankings'];
+  const carregarProximo = () => {
+    if (!modulos.length) return;
+    const m = modulos.shift();
+    carregarModulo(m).finally(() => {
+      if ('requestIdleCallback' in window) requestIdleCallback(carregarProximo);
+      else setTimeout(carregarProximo, 200);
+    });
+  };
+  if ('requestIdleCallback' in window) requestIdleCallback(carregarProximo);
+  else setTimeout(carregarProximo, 500);
+}
+
 // Rotas com `g: true` vivem dentro de um grupo: o 1º número da URL é o id do grupo (vira GID).
 const ROTAS = [
-  { re: /^#\/grupos$/, tab: null, titulo: 'Grupos', tela: (v) => telaGrupos(v) },
-  { re: /^#\/grupos\/(\d+)$/, g: true, tab: 'pelada', titulo: 'Grupo', tela: (v) => telaPelada(v) },
-  { re: /^#\/grupos\/(\d+)\/times$/, g: true, tab: 'pelada', titulo: 'Times', tela: (v) => telaPelada(v, 'times') },
-  { re: /^#\/grupos\/(\d+)\/peladas$/, g: true, tab: 'pelada', titulo: 'Peladas', tela: () => telaBibliotecaPeladas() },
-  { re: /^#\/grupos\/(\d+)\/jogadores$/, g: true, tab: 'jogadores', titulo: 'Jogadores', tela: (v) => telaJogadores(v) },
-  { re: /^#\/grupos\/(\d+)\/rankings$/, g: true, tab: 'rankings', titulo: 'Rankings', tela: (v) => telaRankings(v) },
-  { re: /^#\/conta$/, tab: 'conta', titulo: 'Conta', tela: (v) => telaConta(v) },
-  { re: /^#\/grupos\/(\d+)\/partida\/(\d+)$/, g: true, tab: 'pelada', titulo: 'Ao vivo', tela: (v, id) => telaPartida(v, Number(id)) },
-  { re: /^#\/grupos\/(\d+)\/resumo\/(\d+)$/, g: true, tab: 'pelada', titulo: 'Resumo', tela: (v, id) => telaResumo(v, Number(id)) }
+  { re: /^#\/grupos$/, tab: null, titulo: 'Grupos', modulos: [], tela: (v) => telaGrupos(v) },
+  { re: /^#\/grupos\/(\d+)$/, g: true, tab: 'pelada', titulo: 'Grupo', modulos: ['gfx', 'pelada'], tela: (v) => telaPelada(v) },
+  { re: /^#\/grupos\/(\d+)\/times$/, g: true, tab: 'pelada', titulo: 'Times', modulos: ['gfx', 'pelada'], tela: (v) => telaPelada(v, 'times') },
+  { re: /^#\/grupos\/(\d+)\/peladas$/, g: true, tab: 'pelada', titulo: 'Peladas', modulos: ['gfx', 'pelada'], tela: () => telaBibliotecaPeladas() },
+  { re: /^#\/grupos\/(\d+)\/jogadores$/, g: true, tab: 'jogadores', titulo: 'Jogadores', modulos: ['gfx', 'jogadores'], tela: (v) => telaJogadores(v) },
+  { re: /^#\/grupos\/(\d+)\/rankings$/, g: true, tab: 'rankings', titulo: 'Rankings', modulos: ['gfx', 'rankings'], tela: (v) => telaRankings(v) },
+  { re: /^#\/conta$/, tab: 'conta', titulo: 'Conta', modulos: [], tela: (v) => telaConta(v) },
+  { re: /^#\/grupos\/(\d+)\/partida\/(\d+)$/, g: true, tab: 'pelada', titulo: 'Ao vivo', modulos: ['gfx', 'partida'], tela: (v, id) => telaPartida(v, Number(id)) },
+  { re: /^#\/grupos\/(\d+)\/resumo\/(\d+)$/, g: true, tab: 'pelada', titulo: 'Resumo', modulos: ['gfx', 'pelada'], tela: (v, id) => telaResumo(v, Number(id)) }
 ];
 const ABAS = ['pelada', 'jogadores', 'rankings', 'conta'];
 
-/** Os atalhos da barra de baixo apontam para o grupo atual (ou para a biblioteca, se ainda não há um). */
-function atualizarNav() {
+/**
+ * Atualiza a barra de navegação inferior:
+ * Na tela inicial (Biblioteca de grupos), mostra apenas "Pelada" e "Conta".
+ * Dentro de um grupo, expande para as 4 abas: Pelada, Jogadores, Rankings e Conta.
+ */
+function atualizarNav(rota) {
+  const hash = location.hash || '#/grupos';
+  const rotaAtual = rota || ROTAS.find(r => r.re.test(hash)) || ROTAS[0];
+  const naBiblioteca = !rotaAtual.g && rotaAtual.tab !== 'conta';
+
+  const nav = document.querySelector('.nav');
+  if (nav) {
+    nav.classList.toggle('mode-grupos', naBiblioteca);
+    nav.style.setProperty('--nav-cols', naBiblioteca ? '2' : '4');
+  }
+
   const base = GID ? `#/grupos/${GID}` : '#/grupos';
-  const destino = { pelada: base, jogadores: GID ? base + '/jogadores' : base, rankings: GID ? base + '/rankings' : base, conta: '#/conta' };
-  document.querySelectorAll('.nav a').forEach(a => { a.href = destino[a.dataset.tab]; });
+  const destino = {
+    pelada: naBiblioteca ? '#/grupos' : base,
+    jogadores: GID ? base + '/jogadores' : '#/grupos',
+    rankings: GID ? base + '/rankings' : '#/grupos',
+    conta: '#/conta'
+  };
+  document.querySelectorAll('.nav a').forEach(a => {
+    a.href = destino[a.dataset.tab] || '#/grupos';
+  });
 }
 
 async function rotear() {
@@ -35,11 +84,29 @@ async function rotear() {
     GID = Number(args.shift());
     try { localStorage.setItem('overall_gid', String(GID)); } catch (e) { /* ignora */ }
   }
-  atualizarNav();
+  const naBiblioteca = !rota.g && rota.tab !== 'conta';
+  atualizarNav(rota);
 
-  document.querySelectorAll('.nav a').forEach(a => a.classList.toggle('active', a.dataset.tab === rota.tab));
-  document.querySelector('.nav').style.setProperty('--idx', Math.max(0, ABAS.indexOf(rota.tab)));
-  document.querySelector('.nav-pill').style.opacity = rota.tab ? '' : '0';
+  document.querySelectorAll('.nav a').forEach(a => {
+    let ativo = false;
+    if (naBiblioteca) {
+      ativo = (a.dataset.tab === 'pelada' && rota.tab === null) || (a.dataset.tab === rota.tab);
+    } else {
+      ativo = (a.dataset.tab === rota.tab);
+    }
+    a.classList.toggle('active', ativo);
+  });
+
+  const idx = naBiblioteca
+    ? (rota.tab === 'conta' ? 1 : 0)
+    : Math.max(0, ABAS.indexOf(rota.tab));
+
+  const nav = document.querySelector('.nav');
+  if (nav) {
+    nav.style.setProperty('--idx', idx);
+    const pill = nav.querySelector('.nav-pill');
+    if (pill) pill.style.opacity = '1';
+  }
   document.getElementById('topbar-title').textContent = rota.titulo;
 
   const view = document.getElementById('view');
@@ -47,6 +114,9 @@ async function rotear() {
   view.innerHTML = esqueleto();
   window.scrollTo(0, 0);
   try {
+    if (rota.modulos && rota.modulos.length) {
+      await Promise.all(rota.modulos.map(carregarModulo));
+    }
     await rota.tela(view, ...args);
   } catch (e) {
     if (!token) return;
@@ -79,6 +149,7 @@ function mostrarApp() {
   document.getElementById('app').hidden = false;
   if (!location.hash) location.hash = '#/grupos';
   rotear();
+  prefetchModulos();
 }
 
 function sair() {
@@ -141,7 +212,7 @@ async function alterarSenha() {
 // ---------- login em 3D: o cartão gira levemente em direção ao ponteiro ----------
 (function loginEmPerspectiva() {
   const card = document.querySelector('.login-card');
-  if (!card || REDUZIDO) return;
+  if (!card || REDUZIDO || typeof M === 'undefined') return;
   document.getElementById('login-screen').addEventListener('pointermove', (e) => {
     const nx = (e.clientX / innerWidth - .5) * 2, ny = (e.clientY / innerHeight - .5) * 2;
     card.style.transform = M.css(M.chain(M.perspective(1100), M.rotX(-ny * 6), M.rotY(nx * 8)));
